@@ -20,6 +20,18 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      // Downgrade to warn: Supabase JS client frequently requires `any` until
+      // full generated types are available. Use eslint-disable-next-line for intentional casts.
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Keep these as errors:
+      "@typescript-eslint/ban-ts-comment": "error",
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      // Accessibility
+      "jsx-a11y/alt-text": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

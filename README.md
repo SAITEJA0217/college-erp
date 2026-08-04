@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# College ERP
 
-## Getting Started
+Production-ready College ERP foundation (Next.js 15 + Supabase).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js 15 (App Router) · React 19 · TypeScript
+- Tailwind CSS · shadcn/ui · Lucide · React Hook Form · Zod
+- Supabase Auth / Postgres / Storage
+- next-themes (dark mode)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copy `.env.example` to `.env.local` and set Supabase credentials.
+2. Install: `npm install`
+3. Develop: `npm run dev`
+4. Typecheck: `npm run typecheck`
+5. Build: `npm run build`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Auth model
 
-## Learn More
+There is **no public signup**. Admins provision Student / Faculty / HOD / Placement accounts. Users log in with **Student ID or Employee ID + password**.
 
-To learn more about Next.js, take a look at the following resources:
+Until Supabase credentials are configured, dashboard shells render with foundation demo profiles so the UI can be reviewed.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Foundation scope
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Step 1 includes project scaffold, layouts, reusable shell components, role navigation, marketing pages, and login UI. Domain features (attendance, assignments, placements, etc.) are intentionally not implemented yet.

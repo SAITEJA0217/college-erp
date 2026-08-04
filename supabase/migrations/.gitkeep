@@ -1,0 +1,2 @@
+-- Foundation migrations will be added in Phase 1 (schema + RLS + auth ID mapping).
+-- Keep this folder for Supabase CLI migrations.
