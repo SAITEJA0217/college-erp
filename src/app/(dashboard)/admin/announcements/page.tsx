@@ -1,5 +1,5 @@
-import { getAnnouncements } from "@/features/entrise/actions";
-import { AnnouncementForm } from "@/components/entrise/announcement-form";
+import { getAnnouncements } from "@/features/enterprise/actions";
+import { AnnouncementForm } from "@/components/enterprise/announcement-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";

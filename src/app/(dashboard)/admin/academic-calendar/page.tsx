@@ -1,6 +1,6 @@
-import { getCalendarEvents } from "@/features/entrise/actions";
-import { CalendarViews } from "@/components/entrise/calendar-views";
-import { CalendarEventForm } from "@/components/entrise/calendar-event-form";
+import { getCalendarEvents } from "@/features/enterprise/actions";
+import { CalendarViews } from "@/components/enterprise/calendar-views";
+import { CalendarEventForm } from "@/components/enterprise/calendar-event-form";
 import { assertRole } from "@/features/auth/user";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
