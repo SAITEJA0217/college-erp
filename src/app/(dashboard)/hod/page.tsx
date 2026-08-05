@@ -46,8 +46,8 @@ export default async function HodDashboardPage() {
 
       <HodDashboardClient
         kpis={kpisRes}
-        trends={trendsRes.data}
-        notices={noticesRes.data}
+        trends={trendsRes}
+        notices={noticesRes}
         facultyWorkload={facultyRes.facultyWorkload}
         sectionData={perfRes.sectionData}
         avgMarks={perfRes.avgMarks}

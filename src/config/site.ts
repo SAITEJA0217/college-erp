@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "Nexus University",
-  shortName: "Nexus ERP",
+  name: "Malla Reddy University",
+  shortName: "MRUH ERP",
   description:
-    "Premium college ERP for academics, attendance, placements, and campus operations.",
+    "Malla Reddy University ERP - Digital Campus Management System.",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 } as const;

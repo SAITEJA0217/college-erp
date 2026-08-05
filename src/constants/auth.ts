@@ -1,0 +1,1 @@
+export const DEFAULT_PASSWORD = "MRUH@2020";

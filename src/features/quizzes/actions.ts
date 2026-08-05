@@ -2,9 +2,41 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/features/notifications/actions";
+import { assertRole } from "@/features/auth/user";
+import { z } from "zod";
+
+const quizSchema = z.object({
+  title: z.string().trim().min(1, "Quiz title is required").max(100),
+  description: z.string().trim().max(1000).optional().nullable(),
+  time_limit_minutes: z.number().int().min(1, "Time limit must be at least 1 minute").max(180),
+  start_time: z.string().min(1, "Start time is required"),
+  end_time: z.string().min(1, "End time is required"),
+  subject_id: z.string().uuid("Invalid subject reference"),
+  faculty_id: z.string().uuid("Invalid faculty reference"),
+});
+
+const quizQuestionSchema = z.object({
+  question_text: z.string().trim().min(1, "Question text is required"),
+  question_type: z.enum(["MCQ", "TF", "ShortAnswer"]),
+  options: z.array(z.string().trim()).optional().nullable(),
+  correct_answer: z.string().trim().min(1, "Correct answer is required"),
+  points: z.number().int().min(1, "Points must be at least 1").max(20),
+});
+
+function getFriendlyErrorMessage(err: any): string {
+  if (err.code === "23505") return "This record already exists.";
+  if (err.code === "23503") return "Invalid related reference keys.";
+  return err.message || "Failed to process quiz operation.";
+}
 
 export async function getFacultyQuizzes(facultyId: string) {
   try {
+    const profile = await assertRole(["faculty", "admin"]);
+    if (profile.role === "faculty" && profile.id !== facultyId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
       .from("quizzes")
@@ -39,50 +71,69 @@ export async function getFacultyQuizzes(facultyId: string) {
 
     return { data: mapped };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load quizzes" };
   }
 }
 
 export async function createQuiz(formData: FormData, questions: any[]) {
   try {
-    const supabase = await createClient();
+    const profile = await assertRole(["faculty"]);
+
+    const rawValues = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      time_limit_minutes: parseInt(formData.get("time_limit_minutes") as string, 10),
+      start_time: formData.get("start_time") as string,
+      end_time: formData.get("end_time") as string,
+      subject_id: formData.get("subject_id") as string,
+      faculty_id: formData.get("faculty_id") as string,
+    };
+
+    const validated = quizSchema.parse(rawValues);
+    const validatedQuestions = z.array(quizQuestionSchema).min(1, "At least one question is required").parse(questions);
     
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const subject_id = formData.get("subject_id") as string;
-    const faculty_id = formData.get("faculty_id") as string;
-    const time_limit_minutes = parseInt(formData.get("time_limit_minutes") as string, 10);
-    const start_time = formData.get("start_time") as string;
-    const end_time = formData.get("end_time") as string;
+    if (profile.id !== validated.faculty_id) {
+      return { error: "Forbidden: Faculty ID mismatch." };
+    }
+
+    // Validate times window
+    if (new Date(validated.start_time) >= new Date(validated.end_time)) {
+      return { error: "Start time must be before end time." };
+    }
+
     const is_published = formData.get("is_published") === "true";
+    const supabase = await createClient();
 
     // 1. Insert Quiz
     const { data: quiz, error: quizErr } = await (supabase as any)
       .from("quizzes")
       .insert({
-        title,
-        description,
-        subject_id,
-        faculty_id,
-        time_limit_minutes,
-        start_time: new Date(start_time).toISOString(),
-        end_time: new Date(end_time).toISOString(),
-        is_published
+        subject_id: validated.subject_id,
+        faculty_id: validated.faculty_id,
+        title: validated.title,
+        description: validated.description || null,
+        time_limit_minutes: validated.time_limit_minutes,
+        start_time: validated.start_time,
+        end_time: validated.end_time,
+        is_published,
       })
       .select("id")
       .single();
 
     if (quizErr) throw quizErr;
 
+    const quizId = quiz.id;
+
     // 2. Insert Questions
-    if (questions && questions.length > 0) {
-      const formattedQuestions = questions.map(q => ({
-        quiz_id: quiz.id,
+    if (validatedQuestions.length > 0) {
+      const formattedQuestions = validatedQuestions.map((q, idx) => ({
+        quiz_id: quizId,
         question_text: q.question_text,
         question_type: q.question_type,
         options: q.options || null,
         correct_answer: q.correct_answer,
-        points: q.points || 1
+        points: q.points,
+        order_index: idx,
       }));
 
       const { error: qErr } = await (supabase as any)
@@ -92,26 +143,62 @@ export async function createQuiz(formData: FormData, questions: any[]) {
       if (qErr) throw qErr;
     }
 
+    // Notify students if quiz is published
+    if (is_published) {
+      try {
+        const { data: subjectData } = await (supabase as any)
+          .from("subjects")
+          .select("section_id, name")
+          .eq("id", validated.subject_id)
+          .single();
+
+        if ((subjectData as any)?.section_id) {
+          const { data: students } = await (supabase as any)
+            .from("students")
+            .select("profile_id")
+            .eq("section_id", (subjectData as any).section_id);
+
+          if (students && students.length > 0) {
+            const studentIds = students.map((s: any) => s.profile_id);
+            await sendNotification({
+              userIds: studentIds,
+              title: `New Quiz Published`,
+              body: `Quiz "${validated.title}" has been published for ${(subjectData as any).name}.`,
+              category: "academic",
+              link: "/student/quizzes",
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to send quiz notifications:", err);
+      }
+    }
+
     revalidatePath("/faculty/quizzes");
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }
 
 export async function getStudentQuizzes(studentId: string) {
   try {
+    const profile = await assertRole(["student", "faculty", "admin"]);
+    if (profile.role === "student" && profile.id !== studentId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
     
-    const { data: profile } = await (supabase as any)
+    const { data: student } = await (supabase as any)
       .from("students")
-      .select("sections(semester_id)")
+      .select("semester_id")
       .eq("profile_id", studentId)
       .single();
       
-    if (!profile?.sections?.semester_id) return { error: "Could not determine enrolled subjects" };
+    if (!student?.semester_id) return { error: "Could not determine enrolled subjects" };
     
-    const semesterId = profile.sections.semester_id;
+    const semesterId = student.semester_id;
 
     const { data: quizzes, error } = await (supabase as any)
       .from("quizzes")
@@ -167,12 +254,20 @@ export async function getStudentQuizzes(studentId: string) {
 
     return { data: mapped };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load quizzes" };
   }
 }
 
 export async function startQuizAttempt(quizId: string, studentId: string) {
   try {
+    const profile = await assertRole(["student"]);
+    z.string().uuid().parse(quizId);
+    z.string().uuid().parse(studentId);
+
+    if (profile.id !== studentId) {
+      return { error: "Forbidden: You cannot start attempts for another student." };
+    }
+
     const supabase = await createClient();
     
     // Check if within time window
@@ -220,12 +315,15 @@ export async function startQuizAttempt(quizId: string, studentId: string) {
 
     return { data: attempt };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to start quiz" };
   }
 }
 
 export async function getQuizQuestionsForAttempt(quizId: string) {
   try {
+    await assertRole(["student", "faculty", "admin"]);
+    z.string().uuid().parse(quizId);
+
     const supabase = await createClient();
     // Intentionally omit correct_answer for students
     const { data, error } = await (supabase as any)
@@ -242,23 +340,34 @@ export async function getQuizQuestionsForAttempt(quizId: string) {
     if (error) throw error;
     return { data };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load questions" };
   }
 }
 
 export async function submitQuizAttempt(attemptId: string, answers: { question_id: string, answer: string }[]) {
   try {
+    const profile = await assertRole(["student"]);
+    z.string().uuid().parse(attemptId);
+    z.array(z.object({
+      question_id: z.string().uuid(),
+      answer: z.string().trim(),
+    })).parse(answers);
+
     const supabase = await createClient();
     
     // 1. Get Attempt and Quiz Details
     const { data: attempt, error: attemptErr } = await (supabase as any)
       .from("quiz_attempts")
-      .select("is_completed, start_time, quiz_id")
+      .select("is_completed, start_time, quiz_id, student_id")
       .eq("id", attemptId)
       .single();
 
     if (attemptErr || !attempt) throw new Error("Attempt not found");
     if (attempt.is_completed) throw new Error("Quiz already submitted");
+
+    if (profile.id !== attempt.student_id) {
+      return { error: "Forbidden: Not your attempt." };
+    }
 
     const { data: quiz } = await (supabase as any)
       .from("quizzes")
@@ -266,16 +375,9 @@ export async function submitQuizAttempt(attemptId: string, answers: { question_i
       .eq("id", attempt.quiz_id)
       .single();
 
-    // 2. Validate time limit (add 2 minutes grace period for network latency)
     const now = new Date();
     const startTime = new Date(attempt.start_time);
     const timeLimitMs = (quiz.time_limit_minutes + 2) * 60 * 1000;
-    
-    if (now.getTime() > startTime.getTime() + timeLimitMs || now > new Date(quiz.end_time)) {
-      // Still accept it if we want to penalize later, but let's just mark it submitted. 
-      // In a strict mode, we'd throw here. We will proceed to grade it but they could be penalized.
-      console.log("Submitted slightly after time limit");
-    }
 
     // 3. Get all correct answers for grading
     const { data: questions } = await (supabase as any)
@@ -337,6 +439,6 @@ export async function submitQuizAttempt(attemptId: string, answers: { question_i
     revalidatePath("/student/quizzes");
     return { success: true, score: totalScore };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }

@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { createCollege, updateCollege } from "@/features/admin/academic-actions";
-import type { College } from "@/types/database";
+import { createSchool, updateSchool } from "@/features/admin/academic-actions";
+import type { School } from "@/types/database";
 import { useRouter } from "next/navigation";
 import { AppModal } from "@/components/overlays/app-modal";
 
@@ -17,7 +17,7 @@ const schema = z.object({
   name: z.string().min(1, "Required")
 });
 
-export function CollegeForm({ initialData, open, onOpenChange }: { initialData?: College; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function CollegeForm({ initialData, open, onOpenChange }: { initialData?: School; open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter();
   const isEditing = !!initialData;
   const form = useForm<z.infer<typeof schema>>({
@@ -26,10 +26,10 @@ export function CollegeForm({ initialData, open, onOpenChange }: { initialData?:
   });
 
   async function onSubmit(values: z.infer<typeof schema>) {
-    const result = isEditing ? await updateCollege(initialData.id, values) : await createCollege(values);
+    const result = isEditing ? await updateSchool(initialData.id, values) : await createSchool(values);
     if (result.error) toast.error(result.error);
     else {
-      toast.success(`College ${isEditing ? "updated" : "created"} successfully.`);
+      toast.success(`School ${isEditing ? "updated" : "created"} successfully.`);
       onOpenChange(false);
       form.reset();
       router.refresh();
@@ -38,7 +38,7 @@ export function CollegeForm({ initialData, open, onOpenChange }: { initialData?:
 
   return (
     <AppModal
-      title={isEditing ? "Edit College" : "Add College"}
+      title={isEditing ? "Edit School" : "Add School"}
       open={open}
       onOpenChange={(val) => { onOpenChange(val); if (!val) form.reset(); }}
     >

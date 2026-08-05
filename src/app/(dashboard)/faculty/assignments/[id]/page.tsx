@@ -51,7 +51,7 @@ export default async function GradingPage({ params }: { params: Promise<{ id: st
     .from("students")
     .select(`
       profile_id,
-      enrollment_number,
+      roll_number,
       profiles (
         full_name
       )
@@ -77,7 +77,7 @@ export default async function GradingPage({ params }: { params: Promise<{ id: st
     return {
       student_id: student.profile_id,
       student_name: student.profiles?.full_name || "Unknown",
-      enrollment_number: student.enrollment_number,
+      enrollment_number: student.roll_number,
       submission_id: sub?.id || null,
       file_url: sub?.file_url || null,
       submitted_at: sub?.submitted_at || null,

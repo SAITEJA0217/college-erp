@@ -1,8 +1,9 @@
 -- Create ENUMs
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TYPE app_role AS ENUM ('student', 'faculty', 'hod', 'placement', 'admin');
 CREATE TYPE notification_category AS ENUM ('academic', 'placement', 'general', 'emergency');
 
--- Enable UUID extension
+-- Enable UUID extension (not required if gen_random_uuid is used, but kept for legacy reference)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. Profiles Table (Base for all users)
@@ -22,7 +23,7 @@ CREATE TABLE profiles (
 
 -- 2. Academic Structure
 CREATE TABLE colleges (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     is_archived BOOLEAN DEFAULT false,
@@ -30,7 +31,7 @@ CREATE TABLE colleges (
 );
 
 CREATE TABLE departments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -39,7 +40,7 @@ CREATE TABLE departments (
 );
 
 CREATE TABLE programs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -48,7 +49,7 @@ CREATE TABLE programs (
 );
 
 CREATE TABLE academic_years (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -58,7 +59,7 @@ CREATE TABLE academic_years (
 );
 
 CREATE TABLE semesters (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     academic_year_id UUID REFERENCES academic_years(id) ON DELETE CASCADE,
     program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
     semester_number INTEGER NOT NULL,
@@ -69,7 +70,7 @@ CREATE TABLE semesters (
 );
 
 CREATE TABLE sections (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     semester_id UUID REFERENCES semesters(id) ON DELETE CASCADE,
     name VARCHAR(50) NOT NULL,
     is_archived BOOLEAN DEFAULT false,
@@ -77,7 +78,7 @@ CREATE TABLE sections (
 );
 
 CREATE TABLE subjects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -103,7 +104,7 @@ CREATE TABLE faculty (
 );
 
 CREATE TABLE faculty_assignments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     faculty_id UUID REFERENCES faculty(profile_id) ON DELETE CASCADE,
     is_archived BOOLEAN DEFAULT false,
@@ -113,7 +114,7 @@ CREATE TABLE faculty_assignments (
 
 -- 4. Timetable & Attendance
 CREATE TABLE timetables (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     section_id UUID REFERENCES sections(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     faculty_id UUID REFERENCES faculty(profile_id) ON DELETE CASCADE,
@@ -126,7 +127,7 @@ CREATE TABLE timetables (
 );
 
 CREATE TABLE attendance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     timetable_id UUID REFERENCES timetables(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     faculty_id UUID REFERENCES faculty(profile_id) ON DELETE CASCADE,
@@ -135,7 +136,7 @@ CREATE TABLE attendance (
 );
 
 CREATE TABLE attendance_records (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     attendance_id UUID REFERENCES attendance(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(profile_id) ON DELETE CASCADE,
     status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'late')),
@@ -144,7 +145,7 @@ CREATE TABLE attendance_records (
 
 -- 5. Assignments
 CREATE TABLE assignments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     faculty_id UUID REFERENCES faculty(profile_id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -157,7 +158,7 @@ CREATE TABLE assignments (
 );
 
 CREATE TABLE assignment_submissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(profile_id) ON DELETE CASCADE,
     file_url TEXT NOT NULL,
@@ -169,7 +170,7 @@ CREATE TABLE assignment_submissions (
 
 -- 6. Notes / Materials
 CREATE TABLE notes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     faculty_id UUID REFERENCES faculty(profile_id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -181,7 +182,7 @@ CREATE TABLE notes (
 
 -- 7. Placements
 CREATE TABLE placements (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_name VARCHAR(255) NOT NULL,
     job_role VARCHAR(255) NOT NULL,
     ctc VARCHAR(100),
@@ -192,7 +193,7 @@ CREATE TABLE placements (
 );
 
 CREATE TABLE placement_applications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     placement_id UUID REFERENCES placements(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(profile_id) ON DELETE CASCADE,
     status VARCHAR(50) DEFAULT 'applied' CHECK (status IN ('applied', 'shortlisted', 'interviewed', 'selected', 'rejected')),
@@ -202,7 +203,7 @@ CREATE TABLE placement_applications (
 
 -- 8. Notifications
 CREATE TABLE notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     body TEXT,

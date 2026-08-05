@@ -28,9 +28,12 @@ export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
     data: { user },
+    error: userError
   } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   const { data, error } = await supabase
     .from("profiles")
@@ -38,7 +41,14 @@ export async function getProfile(): Promise<Profile | null> {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    console.error("Profile query failed:", error);
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
   return data;
 }
 

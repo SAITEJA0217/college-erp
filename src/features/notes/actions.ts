@@ -3,42 +3,72 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendNotification } from "@/features/notifications/actions";
+import { assertRole } from "@/features/auth/user";
+import { z } from "zod";
+
+const noteSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(100),
+  description: z.string().trim().max(1000).optional().nullable(),
+  unit: z.string().trim().max(50).optional().nullable(),
+  subject_id: z.string().uuid("Invalid subject reference"),
+  faculty_id: z.string().uuid("Invalid faculty reference"),
+  resource_type: z.string().trim().min(1, "Resource type is required"),
+  url: z.string().trim().optional().nullable(),
+});
+
+const allowedExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "zip", "png", "jpg", "jpeg", "csv"];
+
+function getFriendlyErrorMessage(err: any): string {
+  if (err.code === "23505") return "This study note already exists.";
+  if (err.code === "23503") return "Invalid subject or faculty reference keys.";
+  return err.message || "Failed to process coursework operation.";
+}
 
 export async function getFacultySubjects(facultyId: string) {
   try {
+    const profile = await assertRole(["faculty", "admin"]);
+    if (profile.role === "faculty" && profile.id !== facultyId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
-    // A faculty member is assigned to subjects via timetables OR faculty_assignments (we'll use faculty_assignments)
     const { data, error } = await supabase
-      .from("faculty_assignments")
+      .from("faculty_class_assignments")
       .select(`
         subject_id,
-        subjects (
+        subject:subjects (
           id,
           name,
           code
         )
       `)
-      .eq("faculty_id", facultyId)
+      .eq("faculty_profile_id", facultyId)
       .eq("is_archived", false);
 
     if (error) throw error;
     
     // Deduplicate subjects
     const subjectMap = new Map();
-    data.forEach((a: any) => {
-      if (a.subjects) {
-        subjectMap.set(a.subject_id, a.subjects);
+    (data || []).forEach((a: any) => {
+      const sub = a.subject;
+      if (sub) {
+        subjectMap.set(a.subject_id, sub);
       }
     });
 
     return { data: Array.from(subjectMap.values()) };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load subjects" };
   }
 }
 
 export async function getNotesForFaculty(facultyId: string) {
   try {
+    const profile = await assertRole(["faculty", "admin"]);
+    if (profile.role === "faculty" && profile.id !== facultyId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("notes")
@@ -70,29 +100,30 @@ export async function getNotesForFaculty(facultyId: string) {
 
     return { data: mapped };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load notes" };
   }
 }
 
 export async function getStudentNotes(studentId: string) {
   try {
+    const profile = await assertRole(["student", "faculty", "admin"]);
+    if (profile.role === "student" && profile.id !== studentId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
     
-    // 1. Get student's section
-    const { data: profile, error: profErr } = await (supabase as any)
+    // 1. Get student's semester_id directly from the students table
+    const { data: student, error: studentErr } = await (supabase as any)
       .from("students")
-      .select(`
-        section_id,
-        sections (
-          semester_id
-        )
-      `)
+      .select("semester_id, section_id, department_id")
       .eq("profile_id", studentId)
       .single();
-      
-    if (profErr || !profile?.sections?.semester_id) return { error: "Could not determine enrolled subjects" };
+
+    if (studentErr || !student) return { error: "Student record not found" };
+    if (!student.semester_id) return { error: "Student has no semester assigned" };
     
-    const semesterId = profile.sections.semester_id;
+    const semesterId = student.semester_id;
 
     // 2. Get all notes for subjects belonging to that semester
     const { data: notes, error: notesErr } = await (supabase as any)
@@ -141,43 +172,53 @@ export async function getStudentNotes(studentId: string) {
 
     return { data: mapped };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load notes" };
   }
 }
 
 export async function createNote(formData: FormData) {
   try {
-    const supabase = await createClient();
-    
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const unit = formData.get("unit") as string;
-    const subject_id = formData.get("subject_id") as string;
-    const faculty_id = formData.get("faculty_id") as string;
-    const resource_type = formData.get("resource_type") as string;
-    const url = formData.get("url") as string; // if link/youtube
-    const file = formData.get("file") as File | null;
+    const profile = await assertRole(["faculty"]);
 
-    let finalUrl = url;
+    const rawValues = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      unit: formData.get("unit") as string,
+      subject_id: formData.get("subject_id") as string,
+      faculty_id: formData.get("faculty_id") as string,
+      resource_type: formData.get("resource_type") as string,
+      url: formData.get("url") as string,
+    };
+
+    const validated = noteSchema.parse(rawValues);
+
+    if (profile.id !== validated.faculty_id) {
+      return { error: "Forbidden: Faculty ID mismatch." };
+    }
+
+    const file = formData.get("file") as File | null;
+    let finalUrl = validated.url;
+    const supabase = await createClient();
 
     // If a physical file is provided, upload it to Supabase Storage
-    if (file && file.size > 0 && !["link", "youtube"].includes(resource_type)) {
+    if (file && file.size > 0 && !["link", "youtube"].includes(validated.resource_type)) {
       if (file.size > 50 * 1024 * 1024) {
         return { error: "File exceeds 50MB limit" };
       }
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `${faculty_id}/${fileName}`;
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !allowedExtensions.includes(fileExt)) {
+        return { error: `Unsupported file type. Allowed formats: ${allowedExtensions.join(", ")}` };
+      }
 
-      const { data: uploadData, error: uploadErr } = await supabase.storage
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `${validated.faculty_id}/${fileName}`;
+
+      const { error: uploadErr } = await supabase.storage
         .from("study_materials")
         .upload(filePath, file, { upsert: false });
 
-      if (uploadErr) {
-        console.error("Storage error:", uploadErr);
-        return { error: "Failed to upload file to storage" };
-      }
+      if (uploadErr) throw uploadErr;
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
@@ -188,18 +229,18 @@ export async function createNote(formData: FormData) {
     }
 
     if (!finalUrl) {
-      return { error: "No file or valid URL provided" };
+      return { error: "No file or valid URL link provided" };
     }
 
     const { error: insertErr } = await (supabase as any)
       .from("notes")
       .insert({
-        subject_id,
-        faculty_id,
-        title,
-        description: description || null,
-        unit: unit || null,
-        resource_type,
+        subject_id: validated.subject_id,
+        faculty_id: validated.faculty_id,
+        title: validated.title,
+        description: validated.description || null,
+        unit: validated.unit || null,
+        resource_type: validated.resource_type,
         url: finalUrl,
       });
 
@@ -208,9 +249,10 @@ export async function createNote(formData: FormData) {
     // Notify students
     try {
       const { data: timetables } = await (supabase as any)
-        .from("timetables")
+        .from("faculty_class_assignments")
         .select("section_id")
-        .eq("subject_id", subject_id);
+        .eq("subject_id", validated.subject_id)
+        .eq("is_archived", false);
         
       if (timetables && timetables.length > 0) {
         const sectionIds = Array.from(new Set(timetables.map((t: any) => t.section_id)));
@@ -224,7 +266,7 @@ export async function createNote(formData: FormData) {
           await sendNotification({
             userIds: studentIds,
             title: "New Study Material Uploaded",
-            body: `A new ${resource_type} has been uploaded: ${title}`,
+            body: `A new ${validated.resource_type} has been uploaded: ${validated.title}`,
             category: "academic",
             link: "/student/notes"
           });
@@ -237,13 +279,15 @@ export async function createNote(formData: FormData) {
     revalidatePath("/faculty/notes");
     return { success: true };
   } catch (error: any) {
-    console.error("Server action error:", error);
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }
 
 export async function deleteNote(id: string) {
   try {
+    await assertRole(["faculty"]);
+    z.string().uuid().parse(id);
+
     const supabase = await createClient();
     const { error } = await supabase
       .from("notes")
@@ -255,6 +299,6 @@ export async function deleteNote(id: string) {
     revalidatePath("/faculty/notes");
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }

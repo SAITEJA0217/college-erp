@@ -1,0 +1,37 @@
+[
+  {
+    "id": "c9ee0f3e-3f25-4b46-adb9-a4ed5f6dd9ab",
+    "name": "Computer Science and Engineering",
+    "code": "CSE"
+  },
+  {
+    "id": "9867bc99-9da7-4812-a387-e0fe08b1e389",
+    "name": "Electronics and Communication Engineering",
+    "code": "ECE"
+  },
+  {
+    "id": "6a16563f-9df2-4e69-be62-8733217e7c3b",
+    "name": "Artificial Intelligence & Machine Learning",
+    "code": "AIML"
+  },
+  {
+    "id": "e12de77f-684d-4e30-811d-e52827d6591a",
+    "name": "Computer Science",
+    "code": "CS"
+  },
+  {
+    "id": "94e0c8a7-5803-48a1-89fa-43c29424c7b5",
+    "name": "Data Science",
+    "code": "DS"
+  },
+  {
+    "id": "b9f9b22c-534c-4df7-bee4-d48697f3e28c",
+    "name": "Internet of Things",
+    "code": "IOT"
+  },
+  {
+    "id": "8b40235a-8fd2-4dbe-b8ce-b7b51a7f723c",
+    "name": "Information Technology",
+    "code": "IT"
+  }
+]

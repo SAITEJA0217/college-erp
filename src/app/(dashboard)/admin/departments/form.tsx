@@ -8,23 +8,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createDepartment, updateDepartment } from "@/features/admin/academic-actions";
-import type { Department } from "@/types/database";
+import type { Department, School } from "@/types/database";
 import { useRouter } from "next/navigation";
 import { AppModal } from "@/components/overlays/app-modal";
 
 const schema = z.object({
-  college_id: z.string().min(1, "Required"),
+  school_id: z.string().min(1, "Required"),
   code: z.string().min(1, "Required"),
   name: z.string().min(1, "Required")
 });
 
-export function DepartmentForm({ initialData, open, onOpenChange }: { initialData?: Department; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function DepartmentForm({ initialData, open, onOpenChange, schools }: { initialData?: Department; open: boolean; onOpenChange: (open: boolean) => void; schools: School[] }) {
   const router = useRouter();
   const isEditing = !!initialData;
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema) as unknown as Resolver<z.infer<typeof schema>>,
     defaultValues: initialData ? {
-      college_id: initialData.college_id ?? '',
+      school_id: initialData.school_id ?? '',
       code: initialData.code,
       name: initialData.name,
     } : {},
@@ -52,11 +52,11 @@ export function DepartmentForm({ initialData, open, onOpenChange }: { initialDat
           
           <FormField
             control={form.control}
-            name="college_id"
+            name="school_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>COLLEGE ID</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormLabel>School</FormLabel>
+                <FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3"><option value="">Select a school</option>{schools.map((school) => <option key={school.id} value={school.id}>{school.name} ({school.code})</option>)}</select></FormControl>
                 <FormMessage />
               </FormItem>
             )}

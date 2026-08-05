@@ -2,9 +2,45 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendNotification } from "@/features/notifications/actions";
+import { assertRole } from "@/features/auth/user";
+import { z } from "zod";
+
+const createAssignmentSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(100),
+  description: z.string().trim().max(1000).optional().nullable(),
+  subject_id: z.string().uuid("Invalid subject reference"),
+  faculty_id: z.string().uuid("Invalid faculty reference"),
+  deadline: z.string().min(1, "Deadline is required"),
+  max_marks: z.number().int().min(1, "Maximum marks must be at least 1").max(100),
+});
+
+const submitAssignmentSchema = z.object({
+  assignment_id: z.string().uuid("Invalid assignment reference"),
+  student_id: z.string().uuid("Invalid student reference"),
+});
+
+const gradeSubmissionSchema = z.object({
+  submissionId: z.string().uuid("Invalid submission reference"),
+  marks: z.number().min(0, "Marks cannot be negative").max(100, "Marks cannot exceed 100"),
+  feedback: z.string().trim().max(500).optional().nullable(),
+});
+
+const allowedExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "zip", "png", "jpg", "jpeg", "csv"];
+
+function getFriendlyErrorMessage(err: any): string {
+  if (err.code === "23505") return "This record already exists.";
+  if (err.code === "23503") return "Invalid related reference keys.";
+  return err.message || "Failed to process assignment action.";
+}
 
 export async function getFacultyAssignments(facultyId: string) {
   try {
+    const profile = await assertRole(["faculty", "admin"]);
+    if (profile.role === "faculty" && profile.id !== facultyId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
       .from("assignments")
@@ -40,36 +76,49 @@ export async function getFacultyAssignments(facultyId: string) {
 
     return { data: mapped };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load assignments" };
   }
 }
 
 export async function createAssignment(formData: FormData) {
   try {
-    const supabase = await createClient();
-    
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const subject_id = formData.get("subject_id") as string;
-    const faculty_id = formData.get("faculty_id") as string;
-    const deadline = formData.get("deadline") as string;
-    const max_marks = parseInt(formData.get("max_marks") as string, 10);
-    const file = formData.get("file") as File | null;
+    const profile = await assertRole(["faculty"]);
 
+    const rawValues = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      subject_id: formData.get("subject_id") as string,
+      faculty_id: formData.get("faculty_id") as string,
+      deadline: formData.get("deadline") as string,
+      max_marks: parseInt(formData.get("max_marks") as string, 10),
+    };
+
+    const validated = createAssignmentSchema.parse(rawValues);
+
+    if (profile.id !== validated.faculty_id) {
+      return { error: "Forbidden: Faculty ID mismatch." };
+    }
+
+    const file = formData.get("file") as File | null;
     let file_url = null;
+    const supabase = await createClient();
 
     if (file && file.size > 0) {
       if (file.size > 50 * 1024 * 1024) return { error: "File exceeds 50MB limit" };
       
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !allowedExtensions.includes(fileExt)) {
+        return { error: `Unsupported file type. Allowed formats: ${allowedExtensions.join(", ")}` };
+      }
+
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `${faculty_id}/${fileName}`;
+      const filePath = `${validated.faculty_id}/${fileName}`;
 
       const { error: uploadErr } = await supabase.storage
         .from("assignments")
         .upload(filePath, file);
 
-      if (uploadErr) return { error: "Failed to upload assignment file" };
+      if (uploadErr) throw uploadErr;
 
       const { data: publicUrlData } = supabase.storage
         .from("assignments")
@@ -81,38 +130,72 @@ export async function createAssignment(formData: FormData) {
     const { error: insertErr } = await (supabase as any)
       .from("assignments")
       .insert({
-        subject_id,
-        faculty_id,
-        title,
-        description: description || null,
-        deadline,
-        max_marks,
+        subject_id: validated.subject_id,
+        faculty_id: validated.faculty_id,
+        title: validated.title,
+        description: validated.description || null,
+        deadline: validated.deadline,
+        max_marks: validated.max_marks,
         file_url
       });
 
     if (insertErr) throw insertErr;
 
+    // Notify students in the subject's section
+    try {
+      const { data: subjectData } = await (supabase as any)
+        .from("subjects")
+        .select("section_id, name")
+        .eq("id", validated.subject_id)
+        .single();
+
+      if ((subjectData as any)?.section_id) {
+        const { data: students } = await (supabase as any)
+          .from("students")
+          .select("profile_id")
+          .eq("section_id", (subjectData as any).section_id);
+
+        if (students && students.length > 0) {
+          const studentIds = students.map((s: any) => s.profile_id);
+          await sendNotification({
+            userIds: studentIds,
+            title: `New Assignment Published`,
+            body: `Assignment "${validated.title}" has been published for ${(subjectData as any).name}.`,
+            category: "academic",
+            link: "/student/assignments",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send assignment notifications:", err);
+    }
+
     revalidatePath("/faculty/assignments");
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }
 
 export async function getStudentAssignments(studentId: string) {
   try {
+    const profile = await assertRole(["student", "faculty", "admin"]);
+    if (profile.role === "student" && profile.id !== studentId) {
+      return { error: "Forbidden: Access denied." };
+    }
+
     const supabase = await createClient();
     
-    // 1. Get student's section
-    const { data: profile, error: profErr } = await (supabase as any)
+    // 1. Get student's semester_id directly from the students table
+    const { data: student, error: profErr } = await (supabase as any)
       .from("students")
-      .select("section_id, sections(semester_id)")
+      .select("semester_id")
       .eq("profile_id", studentId)
       .single();
       
-    if (profErr || !profile?.sections?.semester_id) return { error: "Could not determine enrolled subjects" };
+    if (profErr || !student?.semester_id) return { error: "Could not determine enrolled subjects" };
     
-    const semesterId = profile.sections.semester_id;
+    const semesterId = student.semester_id;
 
     // 2. Get all assignments for subjects belonging to that semester
     const { data: assignments, error: assignErr } = await (supabase as any)
@@ -140,6 +223,7 @@ export async function getStudentAssignments(studentId: string) {
         ),
         assignment_submissions (
           id,
+          student_id,
           file_url,
           submitted_at,
           marks_obtained,
@@ -171,26 +255,41 @@ export async function getStudentAssignments(studentId: string) {
 
     return { data: mapped };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to load assignments" };
   }
 }
 
 export async function submitAssignment(formData: FormData) {
   try {
-    const supabase = await createClient();
-    
-    const assignment_id = formData.get("assignment_id") as string;
-    const student_id = formData.get("student_id") as string;
-    const file = formData.get("file") as File;
+    const profile = await assertRole(["student"]);
 
+    const rawValues = {
+      assignment_id: formData.get("assignment_id") as string,
+      student_id: formData.get("student_id") as string,
+    };
+
+    const validated = submitAssignmentSchema.parse(rawValues);
+
+    if (profile.id !== validated.student_id) {
+      return { error: "Forbidden: Student ID mismatch." };
+    }
+
+    const file = formData.get("file") as File;
     if (!file || file.size === 0) return { error: "No file provided" };
     if (file.size > 50 * 1024 * 1024) return { error: "File exceeds 50MB limit" };
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExt || !allowedExtensions.includes(fileExt)) {
+      return { error: `Unsupported file type. Allowed formats: ${allowedExtensions.join(", ")}` };
+    }
+
+    const supabase = await createClient();
 
     // Validate Deadline
     const { data: assignment, error: assignErr } = await (supabase as any)
       .from("assignments")
       .select("deadline")
-      .eq("id", assignment_id)
+      .eq("id", validated.assignment_id)
       .single();
 
     if (assignErr || !assignment) return { error: "Assignment not found" };
@@ -199,27 +298,21 @@ export async function submitAssignment(formData: FormData) {
       return { error: "The deadline for this assignment has passed. Late submissions are not allowed." };
     }
 
-    const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = `${student_id}/${fileName}`;
+    const filePath = `${validated.student_id}/${fileName}`;
 
     const { error: uploadErr } = await supabase.storage
       .from("submissions")
       .upload(filePath, file, { upsert: true });
 
-    if (uploadErr) return { error: "Failed to upload submission file" };
+    if (uploadErr) throw uploadErr;
 
-    // Get signed URL that expires in 100 years for simplicity, 
-    // or just public URL if the bucket is configured for it. 
-    // We configured it as private, so we should store the path and generate signedURLs on demand, 
-    // but for simplicity in this MVP, we will store the path.
-    
     // Check if submission exists to update vs insert
     const { data: existingSub } = await (supabase as any)
       .from("assignment_submissions")
       .select("id")
-      .eq("assignment_id", assignment_id)
-      .eq("student_id", student_id)
+      .eq("assignment_id", validated.assignment_id)
+      .eq("student_id", validated.student_id)
       .single();
 
     if (existingSub) {
@@ -234,8 +327,8 @@ export async function submitAssignment(formData: FormData) {
       await (supabase as any)
         .from("assignment_submissions")
         .insert({
-          assignment_id,
-          student_id,
+          assignment_id: validated.assignment_id,
+          student_id: validated.student_id,
           file_url: filePath
         });
     }
@@ -243,12 +336,15 @@ export async function submitAssignment(formData: FormData) {
     revalidatePath("/student/assignments");
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }
 
 export async function getSubmissionSignedUrl(filePath: string) {
   try {
+    await assertRole(["faculty", "student", "admin"]);
+    z.string().min(1).parse(filePath);
+
     const supabase = await createClient();
     const { data, error } = await supabase.storage
       .from("submissions")
@@ -257,26 +353,28 @@ export async function getSubmissionSignedUrl(filePath: string) {
     if (error) throw error;
     return { url: data.signedUrl };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to generate file link" };
   }
 }
 
 export async function gradeSubmission(submissionId: string, marks: number, feedback: string) {
   try {
+    await assertRole(["faculty"]);
+    const validated = gradeSubmissionSchema.parse({ submissionId, marks, feedback });
+
     const supabase = await createClient();
     const { error } = await (supabase as any)
       .from("assignment_submissions")
       .update({
-        marks_obtained: marks,
-        feedback: feedback || null
+        marks_obtained: validated.marks,
+        feedback: validated.feedback || null
       })
-      .eq("id", submissionId);
+      .eq("id", validated.submissionId);
 
     if (error) throw error;
     
-    // We should ideally pass the assignment ID to revalidate just that page
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }

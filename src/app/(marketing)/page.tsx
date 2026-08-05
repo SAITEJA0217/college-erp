@@ -1,66 +1,40 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowRight, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/config/site";
 
 export default function HomePage() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-40" />
-      <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-28">
-        <div className="space-y-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-            {siteConfig.name}
-          </p>
-          <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            A calmer operating system for campus academics.
+    <div className="relative w-full h-full flex items-center justify-center py-6">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.07] pointer-events-none" />
+      <div className="absolute -top-40 -left-40 h-[400px] w-[400px] rounded-full bg-[#F47C20]/10 blur-[90px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[90px] pointer-events-none" />
+      
+      <div className="relative mx-auto w-full max-w-lg px-4 sm:max-w-6xl sm:px-6 flex flex-col items-center text-center justify-center z-10">
+        <div className="space-y-4 sm:space-y-6 w-full max-w-md sm:max-w-2xl">
+          {/* Tag Badge */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F47C20]/15 border border-[#F47C20]/30 text-[#F47C20] text-[10px] sm:text-xs font-bold tracking-wider uppercase">
+            <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            Digital Campus Management System
+          </div>
+
+          {/* Main Headings */}
+          <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
+            Malla Reddy University <span className="text-[#F47C20]">ERP</span>
           </h1>
-          <p className="max-w-lg text-base text-muted-foreground sm:text-lg">
-            Unified portals for students, faculty, HODs, placement teams, and
-            administrators — built for clarity, speed, and accountability.
+
+          <p className="mx-auto max-w-xs sm:max-w-xl text-sm sm:text-base text-gray-300 leading-relaxed">
+            One unified platform for Students, Faculty, HODs, Placement Cell, Examination Branch, and University Administration.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg" className="rounded-xl">
+
+          <div className="flex justify-center pt-1">
+            <Button asChild size="lg" className="w-full max-w-[320px] h-[52px] rounded-xl bg-gradient-to-r from-[#F47C20] to-[#e66c12] hover:scale-[1.03] active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/20 transition-all duration-200">
               <Link href="/login">
-                Enter ERP
-                <ArrowRight className="h-4 w-4" />
+                Login
               </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-xl">
-              <Link href="/admissions">Explore admissions</Link>
             </Button>
           </div>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[
-            {
-              icon: Users,
-              title: "Role-based portals",
-              body: "Every user lands in the right workspace automatically.",
-            },
-            {
-              icon: ShieldCheck,
-              title: "Institutional access",
-              body: "Accounts are provisioned by admin — login only, no public signup.",
-            },
-            {
-              icon: Sparkles,
-              title: "Premium experience",
-              body: "Glass surfaces, clear hierarchy, and responsive dashboards.",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur-xl sm:last:col-span-2"
-            >
-              <item.icon className="mb-3 h-5 w-5 text-primary" />
-              <h2 className="font-semibold">{item.title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
-            </div>
-          ))}
-        </div>
       </div>
-    </section>
+    </div>
   );
 }

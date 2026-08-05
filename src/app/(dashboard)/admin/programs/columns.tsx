@@ -16,9 +16,11 @@ export const getColumns = (
   onEdit: (item: Program) => void,
   onArchive: (id: string) => void,
 ): ColumnDef<Program>[] => [
-  { accessorKey: "department_id", header: "DEPARTMENT ID" },
+  { accessorKey: "school_name", header: "SCHOOL" },
+  { accessorKey: "department_name", header: "DEPARTMENT" },
   { accessorKey: "code", header: "CODE" },
   { accessorKey: "name", header: "NAME" },
+  { accessorKey: "duration", header: "DURATION (YEARS)" },
   {
     accessorKey: "created_at",
     header: "Created",

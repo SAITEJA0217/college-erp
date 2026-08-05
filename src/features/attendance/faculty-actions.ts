@@ -2,70 +2,85 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getUserProfile } from "@/features/auth/user";
+import { assertRole } from "@/features/auth/user";
+import { sendNotification } from "@/features/notifications/actions";
+import { z } from "zod";
+
+const attendanceRecordInputSchema = z.object({
+  sectionId: z.string().uuid("Invalid section reference"),
+  subjectId: z.string().uuid("Invalid subject reference"),
+  date: z.string().min(1, "Date is required"),
+  records: z.array(z.object({
+    student_id: z.string().uuid("Invalid student reference"),
+    status: z.enum(["present", "absent", "late"]),
+  })).min(1, "At least one attendance record is required"),
+});
+
+function getFriendlyErrorMessage(err: any): string {
+  if (err.code === "23505") return "This attendance slot already exists.";
+  if (err.code === "23503") return "Invalid section, subject, or student reference key.";
+  return err.message || "Failed to save attendance record.";
+}
 
 // Fetch assigned subjects for a faculty to populate dropdowns
 export async function getAssignedSubjects() {
   try {
-    const profile = await getUserProfile();
-    if (!profile || profile.role !== "faculty") {
-      return { error: "Unauthorized" };
-    }
-
+    const profile = await assertRole(["faculty"]);
     const supabase = await createClient();
 
     const { data: assignments, error } = await (supabase as any)
-      .from("faculty_assignments")
+      .from("faculty_class_assignments")
       .select(`
         subject_id,
-        subjects (
+        subject:subjects (
           id,
           name,
-          code,
-          section_id,
-          sections (
+          code
+        ),
+        section_id,
+        section:sections (
+          id,
+          name,
+          semester:semesters (
             id,
-            name,
-            semester_id,
-            semesters (
+            semester_number,
+            program:programs (
               id,
-              semester_number,
-              program_id,
-              programs (
+              name,
+              department:departments (
                 id,
-                name,
-                department_id,
-                departments (
-                  id,
-                  name
-                )
+                name
               )
             )
           )
         )
       `)
-      .eq("faculty_id", profile.id)
+      .eq("faculty_profile_id", profile.id)
       .eq("is_archived", false);
 
-    if (error) {
-      console.error("Error fetching assignments:", error);
-      return { error: error.message };
-    }
+    if (error) throw error;
 
     // Flatten data for easier UI consumption
-    const formatted = assignments.map((a: any) => ({
-      subject_id: a.subjects.id,
-      subject_name: a.subjects.name,
-      subject_code: a.subjects.code,
-      section_id: a.subjects.sections.id,
-      section_name: a.subjects.sections.name,
-      semester_id: a.subjects.sections.semesters.id,
-      semester_number: a.subjects.sections.semesters.semester_number,
-      program_id: a.subjects.sections.semesters.programs.id,
-      program_name: a.subjects.sections.semesters.programs.name,
-      department_id: a.subjects.sections.semesters.programs.departments.id,
-      department_name: a.subjects.sections.semesters.programs.departments.name,
-    }));
+    const formatted = (assignments || []).map((a: any) => {
+      const sub = a.subject;
+      const sec = a.section;
+      const sem = sec?.semester;
+      const prog = sem?.program;
+      const dept = prog?.department;
+      return {
+        subject_id: sub?.id,
+        subject_name: sub?.name,
+        subject_code: sub?.code,
+        section_id: sec?.id,
+        section_name: sec?.name,
+        semester_id: sem?.id,
+        semester_number: sem?.semester_number,
+        program_id: prog?.id,
+        program_name: prog?.name,
+        department_id: dept?.id,
+        department_name: dept?.name,
+      };
+    });
 
     return { data: formatted };
   } catch (error: any) {
@@ -76,6 +91,8 @@ export async function getAssignedSubjects() {
 // Fetch students for a specific section
 export async function getStudentsForSection(sectionId: string) {
   try {
+    await assertRole(["faculty"]);
+    z.string().uuid().parse(sectionId);
     const supabase = await createClient();
 
     const { data, error } = await (supabase as any)
@@ -92,10 +109,7 @@ export async function getStudentsForSection(sectionId: string) {
       .eq("section_id", sectionId)
       .order("roll_number");
 
-    if (error) {
-      console.error("Error fetching students:", error);
-      return { error: error.message };
-    }
+    if (error) throw error;
 
     return { data };
   } catch (error: any) {
@@ -106,6 +120,11 @@ export async function getStudentsForSection(sectionId: string) {
 // Fetch attendance record for a date
 export async function getAttendanceRecord(sectionId: string, subjectId: string, date: string) {
   try {
+    await assertRole(["faculty"]);
+    z.string().uuid().parse(sectionId);
+    z.string().uuid().parse(subjectId);
+    z.string().min(1).parse(date);
+    
     const supabase = await createClient();
 
     const { data: attendance, error } = await (supabase as any)
@@ -123,9 +142,7 @@ export async function getAttendanceRecord(sectionId: string, subjectId: string, 
       .single();
 
     if (error && error.code !== "PGRST116") {
-      // PGRST116 means no rows found, which is fine
-      console.error("Error fetching attendance:", error);
-      return { error: error.message };
+      throw error;
     }
 
     return { data: attendance };
@@ -142,9 +159,12 @@ export async function saveAttendanceRecord(
   records: { student_id: string; status: "present" | "absent" | "late" }[]
 ) {
   try {
-    const profile = await getUserProfile();
-    if (!profile || profile.role !== "faculty") {
-      return { error: "Unauthorized" };
+    const profile = await assertRole(["faculty"]);
+    const validated = attendanceRecordInputSchema.parse({ sectionId, subjectId, date, records });
+    
+    // Prevent attendance marking on future dates
+    if (new Date(validated.date) > new Date()) {
+      return { error: "Cannot mark attendance for future dates." };
     }
 
     const supabase = await createClient();
@@ -153,9 +173,9 @@ export async function saveAttendanceRecord(
     const { data: existing } = await (supabase as any)
       .from("attendance")
       .select("id")
-      .eq("section_id", sectionId)
-      .eq("subject_id", subjectId)
-      .eq("date", date)
+      .eq("section_id", validated.sectionId)
+      .eq("subject_id", validated.subjectId)
+      .eq("date", validated.date)
       .single();
 
     let attendanceId = existing?.id;
@@ -165,23 +185,20 @@ export async function saveAttendanceRecord(
       const { data: newAttendance, error: createError } = await (supabase as any)
         .from("attendance")
         .insert({
-          section_id: sectionId,
-          subject_id: subjectId,
-          date: date,
+          section_id: validated.sectionId,
+          subject_id: validated.subjectId,
+          date: validated.date,
           faculty_id: profile.id,
         })
         .select("id")
         .single();
 
-      if (createError) {
-        console.error("Error creating attendance session:", createError);
-        return { error: createError.message };
-      }
+      if (createError) throw createError;
       attendanceId = newAttendance.id;
     }
 
     // 3. Upsert records
-    const recordsToInsert = records.map((r) => ({
+    const recordsToInsert = validated.records.map((r) => ({
       attendance_id: attendanceId,
       student_id: r.student_id,
       status: r.status,
@@ -191,14 +208,37 @@ export async function saveAttendanceRecord(
       .from("attendance_records")
       .upsert(recordsToInsert, { onConflict: "attendance_id, student_id" });
 
-    if (upsertError) {
-      console.error("Error upserting attendance records:", upsertError);
-      return { error: upsertError.message };
+    if (upsertError) throw upsertError;
+
+    // Notify absent/late students
+    try {
+      const notifyRecords = validated.records.filter(r => r.status === "absent" || r.status === "late");
+      if (notifyRecords.length > 0) {
+        const { data: subjectData } = await (supabase as any)
+          .from("subjects")
+          .select("name")
+          .eq("id", validated.subjectId)
+          .single();
+
+        const subjectName = (subjectData as any)?.name || "Subject";
+
+        for (const r of notifyRecords) {
+          await sendNotification({
+            userIds: [r.student_id],
+            title: `Attendance Alert: Marked ${r.status.toUpperCase()}`,
+            body: `You were marked ${r.status} for ${subjectName} on ${validated.date}.`,
+            category: "academic",
+            link: "/student/attendance",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send attendance notifications:", err);
     }
 
     revalidatePath("/faculty/attendance");
     return { success: true };
   } catch (error: any) {
-    return { error: error.message || "Failed to save attendance" };
+    return { error: getFriendlyErrorMessage(error) };
   }
 }

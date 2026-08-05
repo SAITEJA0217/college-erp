@@ -1,0 +1,12 @@
+[
+  {
+    "id": "9953dd9f-e1df-4bac-a224-4546c419cbb5",
+    "name": "Bachelor of Technology in Computer Science",
+    "department_id": "c9ee0f3e-3f25-4b46-adb9-a4ed5f6dd9ab"
+  },
+  {
+    "id": "ce879077-dd5b-4eef-ae56-e29fa61ee051",
+    "name": "Bachelor of Technology in Electronics",
+    "department_id": "9867bc99-9da7-4812-a387-e0fe08b1e389"
+  }
+]

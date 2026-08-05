@@ -1,15 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getUserProfile } from "@/features/auth/user";
+import { assertRole } from "@/features/auth/user";
 
 export async function getStudentAttendanceAnalytics() {
   try {
-    const profile = await getUserProfile();
-    if (!profile || profile.role !== "student") {
-      return { error: "Unauthorized" };
-    }
-
+    const profile = await assertRole(["student"]);
     const supabase = await createClient();
 
     // Fetch all attendance records for this student
@@ -29,10 +25,7 @@ export async function getStudentAttendanceAnalytics() {
       .eq("student_id", profile.id)
       .order("attendance(date)", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching student attendance:", error);
-      return { error: error.message };
-    }
+    if (error) throw error;
 
     // Process analytics
     let totalClasses = 0;
@@ -43,7 +36,7 @@ export async function getStudentAttendanceAnalytics() {
     const subjectStats: Record<string, { subject: string; code: string; total: number; present: number; absent: number; late: number }> = {};
     const recentLogs: any[] = [];
 
-    records.forEach((record: any, index: number) => {
+    (records || []).forEach((record: any, index: number) => {
       const subjectId = record.attendance.subject_id;
       const subjectName = record.attendance.subjects.name;
       const subjectCode = record.attendance.subjects.code;

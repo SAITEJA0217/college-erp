@@ -1,6 +1,6 @@
 -- 1. Create Quizzes Table
 CREATE TABLE quizzes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     description TEXT,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
@@ -15,7 +15,7 @@ CREATE TABLE quizzes (
 
 -- 2. Create Quiz Questions Table
 CREATE TABLE quiz_questions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     quiz_id UUID REFERENCES quizzes(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
     question_type VARCHAR(50) NOT NULL, -- 'MCQ', 'TrueFalse', 'ShortAnswer'
@@ -26,7 +26,7 @@ CREATE TABLE quiz_questions (
 
 -- 3. Create Quiz Attempts Table (for student tracking)
 CREATE TABLE quiz_attempts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     quiz_id UUID REFERENCES quizzes(id) ON DELETE CASCADE,
     student_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
     start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -38,7 +38,7 @@ CREATE TABLE quiz_attempts (
 
 -- 4. Create Quiz Answers Table (for tracking individual question answers)
 CREATE TABLE quiz_answers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     attempt_id UUID REFERENCES quiz_attempts(id) ON DELETE CASCADE,
     question_id UUID REFERENCES quiz_questions(id) ON DELETE CASCADE,
     student_answer TEXT,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
 import { ProgramForm } from "./form";
-import type { Program } from "@/types/database";
+import type { Department, Program, School } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Plus, Archive } from "lucide-react";
 import { AppModal } from "@/components/overlays/app-modal";
@@ -12,7 +12,7 @@ import { archiveProgram } from "@/features/admin/academic-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function ProgramsClient({ data }: { data: Program[] }) {
+export function ProgramsClient({ data, departments, schools }: { data: Program[]; departments: Department[]; schools: School[] }) {
   const router = useRouter();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState<Program | undefined>();
@@ -44,8 +44,8 @@ export function ProgramsClient({ data }: { data: Program[] }) {
           <Plus className="mr-2 h-4 w-4" /> Add Program
         </Button>
       </div>
-      <DataTable columns={columns} data={data} searchKey="department_id" searchPlaceholder="Search..." emptyTitle="No records found" />
-      <ProgramForm open={isFormOpen} onOpenChange={setIsFormOpen} initialData={editingData} />
+      <DataTable columns={columns} data={data} searchKey="name" searchPlaceholder="Search programs..." emptyTitle="No records found" />
+      <ProgramForm open={isFormOpen} onOpenChange={setIsFormOpen} initialData={editingData} departments={departments} schools={schools} />
       <AppModal
         title="Archive Program"
         description="Are you sure you want to archive this record? It will be hidden from active views."

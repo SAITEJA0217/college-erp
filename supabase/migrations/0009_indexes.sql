@@ -26,7 +26,8 @@ CREATE INDEX IF NOT EXISTS idx_timetables_faculty ON timetables(faculty_id);
 CREATE INDEX IF NOT EXISTS idx_timetables_day ON timetables(day_of_week);
 
 -- attendance
-CREATE INDEX IF NOT EXISTS idx_attendance_timetable ON attendance(timetable_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_section ON attendance(section_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_subject ON attendance(subject_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
 
 -- attendance_records

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "cf8de589-b600-4629-b50a-59dae80b1d04",
+    "name": "Section A",
+    "semester_id": "22a22537-9d52-4bc1-82fa-cee9b21c7af8",
+    "semester": {
+      "program": {
+        "department_id": "c9ee0f3e-3f25-4b46-adb9-a4ed5f6dd9ab"
+      }
+    }
+  }
+]

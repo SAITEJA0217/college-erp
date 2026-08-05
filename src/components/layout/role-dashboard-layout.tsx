@@ -17,6 +17,7 @@ async function resolveDashboardProfile(expectedRole: DashboardRole) {
   }
 
   const profile = await getProfile();
+
   if (!profile || !isDashboardRole(profile.role)) {
     redirect("/login");
   }

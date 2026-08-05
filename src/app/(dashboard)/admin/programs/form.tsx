@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type Resolver, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -8,25 +8,30 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createProgram, updateProgram } from "@/features/admin/academic-actions";
-import type { Program } from "@/types/database";
+import type { Department, Program, School } from "@/types/database";
 import { useRouter } from "next/navigation";
 import { AppModal } from "@/components/overlays/app-modal";
 
 const schema = z.object({
+  school_id: z.string().min(1, "Required"),
   department_id: z.string().min(1, "Required"),
   code: z.string().min(1, "Required"),
-  name: z.string().min(1, "Required")
+  name: z.string().min(1, "Required"),
+  duration: z.coerce.number().int().min(1, "Required")
 });
+type ProgramFormValues = { school_id: string; department_id: string; code: string; name: string; duration: number };
 
-export function ProgramForm({ initialData, open, onOpenChange }: { initialData?: Program; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function ProgramForm({ initialData, open, onOpenChange, departments, schools }: { initialData?: Program; open: boolean; onOpenChange: (open: boolean) => void; departments: Department[]; schools: School[] }) {
   const router = useRouter();
   const isEditing = !!initialData;
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema) as unknown as Resolver<z.infer<typeof schema>>,
-    defaultValues: initialData ? { ...initialData } : {},
+  const form = useForm<ProgramFormValues>({
+    resolver: zodResolver(schema) as unknown as Resolver<ProgramFormValues>,
+    defaultValues: initialData ? { school_id: departments.find((department) => department.id === initialData.department_id)?.school_id ?? "", department_id: initialData.department_id, code: initialData.code, name: initialData.name, duration: initialData.duration ?? 4 } : {},
   });
+  const schoolId = useWatch({ control: form.control, name: "school_id" });
+  const availableDepartments = departments.filter((department) => department.school_id === schoolId);
 
-  async function onSubmit(values: z.infer<typeof schema>) {
+  async function onSubmit(values: ProgramFormValues) {
     const result = isEditing ? await updateProgram(initialData.id, values) : await createProgram(values);
     if (result.error) toast.error(result.error);
     else {
@@ -48,15 +53,23 @@ export function ProgramForm({ initialData, open, onOpenChange }: { initialData?:
           
           <FormField
             control={form.control}
+            name="school_id"
+            render={({ field }) => (
+              <FormItem><FormLabel>School</FormLabel><FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3" onChange={(event) => { field.onChange(event); form.setValue("department_id", ""); }}><option value="">Select a school</option>{schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></FormControl><FormMessage /></FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="department_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>DEPARTMENT ID</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormLabel>Department</FormLabel>
+                <FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3" disabled={!schoolId}><option value="">Select a department</option>{availableDepartments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          <FormField control={form.control} name="duration" render={({ field }) => (<FormItem><FormLabel>Duration (years)</FormLabel><FormControl><Input {...field} value={field.value || ""} type="number" min="1" /></FormControl><FormMessage /></FormItem>)} />
           <FormField
             control={form.control}
             name="code"

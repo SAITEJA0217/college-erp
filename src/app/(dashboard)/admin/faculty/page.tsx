@@ -1,10 +1,14 @@
-﻿import { ModulePlaceholder } from "@/components/dashboard/module-placeholder";
+import { getFaculty } from "@/features/admin/user-actions";
+import { getDepartments } from "@/features/admin/academic-actions";
+import { FacultyClient } from "./client";
 
-export default function Page() {
+export default async function FacultyPage() {
+  const faculty = await getFaculty();
+  const departments = await getDepartments();
+
   return (
-    <ModulePlaceholder
-      title="Faculty"
-      description="Import and manage faculty accounts."
-    />
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <FacultyClient data={faculty} departments={departments} />
+    </div>
   );
 }

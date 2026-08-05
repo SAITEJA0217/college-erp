@@ -6,40 +6,65 @@ import { getRoleFromPathname, ROLE_HOME } from "@/config/navigation";
 import type { LoginValues } from "@/lib/validations/auth";
 import { type AppRole, isDashboardRole } from "@/types/roles";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function loginAction(values: LoginValues) {
   try {
     const supabase = await createClient();
     const adminClient = createAdminClient();
 
-    // 1. Look up email using the service role key to bypass RLS
-    const { data: profile, error: profileError } = await adminClient
-      .from("profiles")
-      .select("email, role")
-      .eq("employee_or_student_id", values.identifier)
-      .maybeSingle() as unknown as { data: { email: string; role: AppRole } | null; error: any };
-
-    if (profileError || !profile) {
-      return { error: "Invalid credentials." };
+    const isEmail = values.identifier.includes("@");
+    let profile: { email: string; role: AppRole } | null = null;
+    
+    if (isEmail) {
+      // 1. Look up profile by email using service role key
+      const { data, error } = await adminClient
+        .from("profiles")
+        .select("email, role")
+        .eq("email", values.identifier)
+        .maybeSingle() as unknown as { data: { email: string; role: AppRole } | null; error: any };
+        
+      if (error || !data) return { error: "Invalid credentials." };
+      
+      // Students MUST use Roll Number
+      if (data.role === "student") {
+        return { error: "Students must log in using their Roll Number, not email." };
+      }
+      profile = data;
+    } else {
+      // 1. Look up profile by employee_or_student_id
+      const { data, error } = await adminClient
+        .from("profiles")
+        .select("email, role")
+        .eq("employee_or_student_id", values.identifier)
+        .maybeSingle() as unknown as { data: { email: string; role: AppRole } | null; error: any };
+        
+      if (error || !data) return { error: "Invalid credentials." };
+      profile = data;
     }
 
     // 2. Sign in with standard Supabase auth
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: profile.email,
-      password: values.password,
-    });
+
+    const { data: authData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: values.password,
+      });
 
     if (signInError) {
-      return { error: "Invalid credentials." };
+      return { error: signInError.message };
     }
 
     if (!profile.role || !isDashboardRole(profile.role)) {
       return { error: "Invalid role assigned to user." };
     }
 
-    // 3. Return the destination based on role
-    return { destination: ROLE_HOME[profile.role] || "/login" };
+
+    redirect(ROLE_HOME[profile.role] || "/login");
   } catch (error) {
+    if ((error as any)?.digest?.startsWith("NEXT_REDIRECT")) {
+      throw error;
+    }
     return { error: "An unexpected error occurred." };
   }
 }
@@ -49,13 +74,36 @@ export async function resetPasswordAction(identifier: string) {
     const supabase = await createClient();
     const adminClient = createAdminClient();
 
-    const { data: profile, error: profileError } = await adminClient
-      .from("profiles")
-      .select("email")
-      .eq("employee_or_student_id", identifier)
-      .maybeSingle() as { data: { email: string } | null; error: any };
+    const isEmail = identifier.includes("@");
+    let profile: { email: string; role: AppRole } | null = null;
+    
+    if (isEmail) {
+      const { data, error } = await adminClient
+        .from("profiles")
+        .select("email, role")
+        .eq("email", identifier)
+        .maybeSingle() as unknown as { data: { email: string; role: AppRole } | null; error: any };
+        
+      if (!error && data) {
+        // Students MUST use Roll Number, even for reset requests
+        if (data.role === "student") {
+          return { success: true }; // Silent failure to prevent enumeration
+        }
+        profile = data;
+      }
+    } else {
+      const { data, error } = await adminClient
+        .from("profiles")
+        .select("email, role")
+        .eq("employee_or_student_id", identifier)
+        .maybeSingle() as unknown as { data: { email: string; role: AppRole } | null; error: any };
+        
+      if (!error && data) {
+        profile = data;
+      }
+    }
 
-    if (profileError || !profile) {
+    if (!profile) {
       // Return success anyway to prevent user enumeration
       return { success: true };
     }

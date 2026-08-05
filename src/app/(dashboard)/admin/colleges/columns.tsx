@@ -1,9 +1,9 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import type { College } from "@/types/database";
+import type { School } from "@/types/database";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Archive } from "lucide-react";
+import { MoreHorizontal, Edit, Archive, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +13,10 @@ import {
 import { format } from "date-fns";
 
 export const getColumns = (
-  onEdit: (item: College) => void,
+  onEdit: (item: School) => void,
   onArchive: (id: string) => void,
-): ColumnDef<College>[] => [
+  onDelete: (id: string) => void,
+): ColumnDef<School>[] => [
   { accessorKey: "code", header: "CODE" },
   { accessorKey: "name", header: "NAME" },
   {
@@ -33,6 +34,7 @@ export const getColumns = (
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(row.original)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onArchive(row.original.id)}><Archive className="mr-2 h-4 w-4" /> Archive</DropdownMenuItem>
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(row.original.id)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),

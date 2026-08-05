@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from "@/features/notifications/actions";
@@ -21,7 +21,7 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;

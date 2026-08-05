@@ -1,7 +1,9 @@
 import { getUserProfile } from "@/features/auth/user";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminTimetableClient } from "./client";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminTimetablePage() {
   const profile = await getUserProfile();
@@ -9,21 +11,21 @@ export default async function AdminTimetablePage() {
     redirect("/login");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   
-  // Fetch sections with relationships to display cleanly
+  // Fetch sections concurrently
   const { data: sections } = await supabase
     .from("sections")
     .select(`
       id,
       name,
-      semesters (
+      semester:semesters (
         id,
-        number,
-        programs (
+        semester_number,
+        program:programs (
           id,
           name,
-          departments (
+          department:departments (
             name
           )
         )
@@ -32,33 +34,14 @@ export default async function AdminTimetablePage() {
     .eq("is_archived", false)
     .order("name");
 
-  // Fetch faculty
-  const { data: faculty } = await supabase
-    .from("faculty")
-    .select(`
-      profile_id,
-      profiles (
-        full_name
-      )
-    `)
-    .eq("is_archived", false);
-
-  // Fetch subjects
-  const { data: subjects } = await supabase
-    .from("subjects")
-    .select("id, name, code, semester_id")
-    .eq("is_archived", false);
-
   const formattedSections = (sections || []).map((s: any) => ({
     id: s.id,
     name: s.name,
-    semester_id: s.semesters?.id,
-    label: `${s.semesters?.programs?.departments?.name} > ${s.semesters?.programs?.name} > Sem ${s.semesters?.number} > Section ${s.name}`,
-  }));
-
-  const formattedFaculty = (faculty || []).map((f: any) => ({
-    id: f.profile_id,
-    name: f.profiles?.full_name || "Unknown Faculty",
+    semester_id: s.semester?.id,
+    semester_number: s.semester?.semester_number,
+    program_name: s.semester?.program?.name,
+    department_name: s.semester?.program?.department?.name,
+    label: `${s.semester?.program?.department?.name} > ${s.semester?.program?.name} > Sem ${s.semester?.semester_number} > Section ${s.name}`,
   }));
 
   return (
@@ -68,11 +51,7 @@ export default async function AdminTimetablePage() {
         <p className="text-muted-foreground">Schedule classes and manage timetables across all sections.</p>
       </div>
 
-      <AdminTimetableClient 
-        sections={formattedSections} 
-        faculty={formattedFaculty} 
-        subjects={subjects || []} 
-      />
+      <AdminTimetableClient sections={formattedSections} />
     </div>
   );
 }

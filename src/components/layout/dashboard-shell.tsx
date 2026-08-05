@@ -26,7 +26,7 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = React.useState(false);
 
   return (
-    <div className="flex min-h-svh bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-100/70 via-background to-background dark:from-sky-950/40">
+    <div className="flex min-h-svh bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/70 via-background to-background dark:from-[#1E2A78]/10">
       <div className="hidden lg:block">
         <AppSidebar
           role={role}

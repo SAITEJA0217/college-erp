@@ -59,6 +59,7 @@ const studentNav: NavItem[] = [
   { title: "Assignments", href: "/student/assignments", icon: FileText },
   { title: "Quizzes", href: "/student/quizzes", icon: BrainCircuit },
   { title: "Notifications", href: "/student/notifications", icon: Bell },
+  { title: "Help Desk", href: "/student/help-desk", icon: Settings },
 ];
 
 const facultyNav: NavItem[] = [
@@ -70,6 +71,7 @@ const facultyNav: NavItem[] = [
   { title: "Assignments", href: "/faculty/assignments", icon: FileText },
   { title: "Quizzes", href: "/faculty/quizzes", icon: BrainCircuit },
   { title: "Notifications", href: "/faculty/notifications", icon: Bell },
+  { title: "Help Desk", href: "/faculty/help-desk", icon: Settings },
 ];
 
 const hodNav: NavItem[] = [
@@ -77,9 +79,11 @@ const hodNav: NavItem[] = [
   { title: "Department", href: "/hod/department", icon: Building2 },
   { title: "Faculty", href: "/hod/faculty", icon: Users },
   { title: "Students", href: "/hod/students", icon: GraduationCap },
-  { title: "Timetable", href: "/hod/timetable", icon: CalendarClock, disabled: true },
+  { title: "Timetable", href: "/hod/timetable", icon: CalendarClock },
   { title: "Reports", href: "/hod/reports", icon: BarChart3 },
+  { title: "Announcements", href: "/hod/announcements", icon: Megaphone },
   { title: "Notifications", href: "/hod/notifications", icon: Bell },
+  { title: "Help Desk", href: "/hod/help-desk", icon: Settings },
 ];
 
 const placementNav: NavItem[] = [

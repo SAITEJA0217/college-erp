@@ -25,6 +25,7 @@ export default async function HodNotificationsPage() {
   const { data: notices } = await (supabase as any)
     .from("announcements")
     .select("*")
+    .or(`department_id.eq.${hodFaculty.department_id},department_id.is.null`)
     .order("created_at", { ascending: false })
     .limit(20);
 

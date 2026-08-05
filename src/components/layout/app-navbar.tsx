@@ -73,24 +73,51 @@ export function AppNavbar({
               {ROLE_NAVIGATION[role].map((item) => {
                 const active =
                   pathname === item.href ||
-                  (item.href !== `/${role}` && pathname.startsWith(item.href));
+                  (item.href !== `/${role}` && item.href !== "#" && pathname.startsWith(item.href));
                 const Icon = item.icon;
+                const hasItems = item.items && item.items.length > 0;
+                
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.disabled ? "#" : item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent",
-                      item.disabled && "pointer-events-none opacity-45",
+                  <div key={item.title} className="flex flex-col gap-1">
+                    <Link
+                      href={item.disabled ? "#" : item.href}
+                      aria-current={active && !hasItems ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent",
+                        item.disabled && "pointer-events-none opacity-45",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      {item.title}
+                    </Link>
+                    {hasItems && (
+                      <div className="flex flex-col gap-1 pl-7 relative border-l ml-5 mt-1">
+                        {item.items!.map(child => {
+                          const childActive = pathname === child.href;
+                          const ChildIcon = child.icon;
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.disabled ? "#" : child.href}
+                              className={cn(
+                                "flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium",
+                                childActive
+                                  ? "text-foreground bg-accent"
+                                  : "text-muted-foreground hover:text-foreground",
+                                child.disabled && "pointer-events-none opacity-45"
+                              )}
+                            >
+                              <ChildIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
+                              {child.title}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    {item.title}
-                  </Link>
+                  </div>
                 );
               })}
             </nav>
@@ -98,9 +125,9 @@ export function AppNavbar({
         </Sheet>
 
         <div>
-          <p className="text-sm font-semibold">{ROLE_LABELS[role]} Portal</p>
-          <p className="hidden text-xs text-muted-foreground sm:block">
-            Welcome back, {userName.split(" ")[0]}
+          <p className="text-sm font-bold text-[#1E2A78] tracking-wide" suppressHydrationWarning>Malla Reddy University {ROLE_LABELS[role]} Portal</p>
+          <p className="hidden text-xs font-medium text-gray-500 sm:block" suppressHydrationWarning>
+            Welcome back, {userName}
           </p>
         </div>
       </div>
@@ -143,16 +170,15 @@ export function AppNavbar({
                 Profile
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <form action={signOut} className="w-full">
-                <button
-                  type="submit"
-                  className="flex w-full items-center gap-2 text-sm"
-                >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
-                  Sign out
-                </button>
-              </form>
+            <DropdownMenuItem
+              onSelect={async (e) => {
+                e.preventDefault();
+                await signOut();
+              }}
+              className="flex w-full items-center gap-2 text-sm cursor-pointer text-destructive focus:text-destructive"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

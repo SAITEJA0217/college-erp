@@ -26,7 +26,7 @@ export interface Profile {
   };
 }
 
-export interface College {
+export interface School {
   id: string;
   code: string;
   name: string;
@@ -36,7 +36,9 @@ export interface College {
 
 export interface Department {
   id: string;
-  college_id: string | null;
+  school_id: string | null;
+  school_name?: string;
+  school_code?: string;
   code: string;
   name: string;
   is_archived: boolean;
@@ -48,6 +50,9 @@ export interface Program {
   department_id: string;
   code: string;
   name: string;
+  duration: number | null;
+  department_name?: string;
+  school_name?: string;
   is_archived: boolean;
   created_at: string;
 }
@@ -115,18 +120,24 @@ export interface FacultyAssignment {
   created_at: string;
 }
 
-export interface Timetable {
+export interface FacultyClassAssignment {
   id: string;
+  faculty_profile_id: string;
+  department_id: string;
+  semester_id: string;
   section_id: string;
   subject_id: string;
-  faculty_id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
+  academic_year: string;
   room_number: string | null;
+  day_of_week: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  status: "Active" | "Completed";
   is_archived: boolean;
   created_at: string;
+  updated_at: string;
 }
+
 
 export interface Attendance {
   id: string;
@@ -233,7 +244,7 @@ export interface Database {
   public: {
     Tables: {
       profiles: TableDef<Profile>;
-      colleges: TableDef<College>;
+      schools: TableDef<School>;
       departments: TableDef<Department>;
       programs: TableDef<Program>;
       academic_years: TableDef<AcademicYear>;
@@ -243,7 +254,7 @@ export interface Database {
       students: TableDef<Student>;
       faculty: TableDef<Faculty>;
       faculty_assignments: TableDef<FacultyAssignment>;
-      timetables: TableDef<Timetable>;
+      faculty_class_assignments: TableDef<FacultyClassAssignment>;
       attendance: TableDef<Attendance>;
       attendance_records: TableDef<AttendanceRecord>;
       assignments: TableDef<Assignment>;

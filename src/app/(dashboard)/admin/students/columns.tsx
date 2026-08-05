@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toggleUserStatus, deleteUserAccount, resetUserPassword } from "@/features/admin/user-actions";
 import { toast } from "sonner";
+import { DEFAULT_PASSWORD } from "@/constants/auth";
 
 export const getColumns = (): ColumnDef<any>[] => [
   {
@@ -19,13 +20,52 @@ export const getColumns = (): ColumnDef<any>[] => [
     header: "Full Name",
   },
   {
-    accessorKey: "students.roll_number",
+    accessorFn: (row) => row.students?.roll_number,
+    id: "roll_number",
     header: "Roll Number",
-    cell: ({ row }) => <span className="font-semibold">{row.original.students.roll_number}</span>
+    cell: ({ row }) => <span className="font-semibold">{row.original.students?.roll_number}</span>
   },
   {
     accessorKey: "email",
     header: "Email",
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+    cell: ({ row }) => <span>{row.original.phone || "—"}</span>
+  },
+  {
+    accessorFn: (row) => row.students?.department?.name,
+    id: "department",
+    header: "Department",
+    cell: ({ row }) => <span>{row.original.students?.department?.name || "—"}</span>
+  },
+  {
+    accessorFn: (row) => row.students?.semester?.semester_number,
+    id: "semester",
+    header: "Semester",
+    cell: ({ row }) => <span>{row.original.students?.semester ? `Semester ${row.original.students.semester.semester_number}` : "—"}</span>
+  },
+  {
+    accessorFn: (row) => row.students?.section?.name,
+    id: "section",
+    header: "Section",
+    cell: ({ row }) => <span>{row.original.students?.section?.name || "—"}</span>
+  },
+  {
+    accessorFn: (row) => row.students?.batch_year,
+    id: "batch",
+    header: "Batch",
+    cell: ({ row }) => <span>{row.original.students?.batch_year || "—"}</span>
+  },
+  {
+    id: "password_status",
+    header: "Password Status",
+    cell: ({ row }) => (
+      <Badge variant={row.original.must_change_password ? "destructive" : "secondary"}>
+        {row.original.must_change_password ? "Default Password" : "Updated"}
+      </Badge>
+    ),
   },
   {
     accessorKey: "is_active",
@@ -55,10 +95,10 @@ export const getColumns = (): ColumnDef<any>[] => [
       };
 
       const handleResetPassword = async () => {
-        if (!confirm("Reset password to 'Welcome@2024'?")) return;
+        if (!confirm(`Reset password to '${DEFAULT_PASSWORD}'?`)) return;
         const result = await resetUserPassword(user.id);
         if (result.error) toast.error(result.error);
-        else toast.success("Password reset successfully.");
+        else toast.success(`Password reset successfully. Temporary Password: ${DEFAULT_PASSWORD}`);
       };
 
       return (
