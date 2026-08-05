@@ -8,7 +8,7 @@ export default function HomePage() {
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.07] pointer-events-none" />
       <div className="absolute -top-40 -left-40 h-[400px] w-[400px] rounded-full bg-[#F47C20]/10 blur-[90px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[90px] pointer-events-none" />
-      
+
       <div className="relative mx-auto w-full max-w-lg px-4 sm:max-w-6xl sm:px-6 flex flex-col items-center text-center justify-center z-10">
         <div className="space-y-4 sm:space-y-6 w-full max-w-md sm:max-w-2xl">
           {/* Tag Badge */}
@@ -19,7 +19,7 @@ export default function HomePage() {
 
           {/* Main Headings */}
           <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Malla Reddy University <span className="text-[#F47C20]">ERP</span>
+            Malla Reddy University <span className="text-[#F47C20]">Acadaemix</span>
           </h1>
 
           <p className="mx-auto max-w-xs sm:max-w-xl text-sm sm:text-base text-gray-300 leading-relaxed">
