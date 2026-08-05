@@ -1,5 +1,5 @@
-import { getAnnouncements } from "@/features/enterprise/actions";
-import { AnnouncementForm } from "@/components/enterprise/announcement-form";
+import { getAnnouncements } from "@/features/entrise/actions";
+import { AnnouncementForm } from "@/components/entrise/announcement-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ export default async function AnnouncementsPage() {
           </h1>
           <p className="text-muted-foreground">Manage campus-wide and targeted announcements.</p>
         </div>
-        
+
         <Dialog>
           <DialogTrigger asChild>
             <Button>

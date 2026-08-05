@@ -17,7 +17,7 @@ export function MarketingHeader() {
             <img src="/logo.png" alt="Malla Reddy University" className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0">
-            <span className="text-[#1E2A78] font-bold text-sm sm:text-lg leading-none block truncate">Malla Reddy University ERP</span>
+            <span className="text-[#1E2A78] font-bold text-sm sm:text-lg leading-none block truncate">Malla Reddy University </span>
             <span className="text-[8px] sm:text-[10px] text-gray-500 font-semibold tracking-wider uppercase block truncate">Digital Campus Management System</span>
           </div>
         </Link>
