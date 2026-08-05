@@ -11,18 +11,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 
 export const getColumns = (
   onEdit: (item: Department) => void,
   onArchive: (id: string) => void,
   onDelete: (id: string) => void,
 ): ColumnDef<Department>[] => [
-  { accessorKey: "school_name", header: "SCHOOL" },
-  { accessorKey: "code", header: "CODE" },
-  { accessorKey: "name", header: "NAME" },
+  { 
+    accessorKey: "school_name", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="School" />
+  },
+  { 
+    accessorKey: "code", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />
+  },
+  { 
+    accessorKey: "name", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />
+  },
   {
     accessorKey: "created_at",
-    header: "Created",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
     cell: ({ row }) => format(new Date(row.getValue("created_at")), "MMM d, yyyy"),
   },
   {

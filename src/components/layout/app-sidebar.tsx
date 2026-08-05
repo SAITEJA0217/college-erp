@@ -37,10 +37,26 @@ function SidebarItem({
     (child) => pathname === child.href || pathname.startsWith(child.href + "/")
   );
   
-  const [isOpen, setIsOpen] = useState(isChildActive);
+  const storageKey = `academix_sidebar_${item.title.replace(/\s+/g, '_')}_open`;
+
+  const [isOpen, setIsOpen] = useState(() => {
+    if (isChildActive) return true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(storageKey);
+      if (stored !== null) return stored === "true";
+    }
+    return false;
+  });
+
   useEffect(() => {
     if (isChildActive && !isOpen) setIsOpen(true);
-  }, [isChildActive, pathname]);
+  }, [isChildActive, pathname, isOpen]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(storageKey, String(isOpen));
+    }
+  }, [isOpen, storageKey]);
 
   const Icon = item.icon;
 
@@ -145,11 +161,11 @@ export function AppSidebar({
     >
       <div className="flex h-16 items-center gap-3 px-4">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white overflow-hidden p-0.5 border border-amber-500/20">
-          <img src="/logo.png" alt="MRUH Logo" className="h-full w-full object-contain" />
+          <img src="/logo.png" alt="Academix Logo" className="h-full w-full object-contain" />
         </div>
         {!collapsed ? (
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold tracking-wider text-[#F47C20]">MRUH ERP</p>
+            <p className="truncate text-sm font-bold tracking-wider text-[#F47C20]">Academix</p>
             <p className="truncate text-xs font-semibold text-gray-300">
               {ROLE_LABELS[role]}
             </p>

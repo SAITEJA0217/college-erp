@@ -6,17 +6,19 @@ export async function getAdminAnalytics() {
   const supabase = await createClient();
 
   // Basic Counts
-  const [
-    { count: studentCount },
-    { count: facultyCount },
-    { count: deptCount },
-    { count: assignmentCount }
-  ] = await Promise.all([
+  const results = await Promise.all([
     (supabase as any).from("students").select("*", { count: "exact", head: true }),
     (supabase as any).from("faculty").select("*", { count: "exact", head: true }),
     (supabase as any).from("departments").select("*", { count: "exact", head: true }),
     (supabase as any).from("assignments").select("*", { count: "exact", head: true }),
+    (supabase as any).from("notifications").select("id, title, body, created_at").order("created_at", { ascending: false }).limit(5),
   ]);
+
+  const studentCount = results[0].count;
+  const facultyCount = results[1].count;
+  const deptCount = results[2].count;
+  const assignmentCount = results[3].count;
+  const recentNotifications = results[4]?.data || [];
 
 
   // Students by Department
@@ -26,10 +28,8 @@ export async function getAdminAnalytics() {
       code,
       name,
       programs (
-        semesters (
-          sections (
-            students ( profile_id )
-          )
+        sections (
+          students ( profile_id )
         )
       )
     `);
@@ -37,10 +37,8 @@ export async function getAdminAnalytics() {
   const studentsByDept = deptData?.map((dept: any) => {
     let count = 0;
     dept.programs?.forEach((p: any) => {
-      p.semesters?.forEach((s: any) => {
-        s.sections?.forEach((sec: any) => {
-          count += sec.students?.length || 0;
-        });
+      p.sections?.forEach((sec: any) => {
+        count += sec.students?.length || 0;
       });
     });
     return { name: dept.code, count };
@@ -111,6 +109,7 @@ export async function getAdminAnalytics() {
       studentsByDept,
       placementData: placementData.filter(d => d.value > 0),
       revenueData
-    }
+    },
+    recentNotifications
   };
 }

@@ -13,7 +13,8 @@ import { useRouter } from "next/navigation";
 import { AppModal } from "@/components/overlays/app-modal";
 
 const schema = z.object({
-  semester_id: z.string().min(1, "Required"),
+  program_id: z.string().min(1, "Required"),
+  academic_year_id: z.string().min(1, "Required"),
   name: z.string().min(1, "Required")
 });
 
@@ -47,10 +48,21 @@ export function SectionForm({ initialData, open, onOpenChange }: { initialData?:
           
           <FormField
             control={form.control}
-            name="semester_id"
+            name="academic_year_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SEMESTER ID</FormLabel>
+                <FormLabel>ACADEMIC YEAR ID</FormLabel>
+                <FormControl><Input {...field} value={field.value || ''} type="text" autoFocus /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="program_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>PROGRAM ID</FormLabel>
                 <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
                 <FormMessage />
               </FormItem>

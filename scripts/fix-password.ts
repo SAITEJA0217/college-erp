@@ -21,7 +21,7 @@ async function main() {
   const { data, error } = await supabase.auth.admin.updateUserById(
     userId,
     {
-      password: "MRUH@2020",
+      password: "Academix@2026",
       email_confirm: true,
     }
   );

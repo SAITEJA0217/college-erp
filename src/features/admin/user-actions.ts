@@ -12,7 +12,6 @@ const studentSchema = z.object({
   phone: z.string().trim().max(15).optional().nullable(),
   roll_number: z.string().trim().min(1, "Roll number is required").max(20),
   department_id: z.string().uuid("Invalid department reference"),
-  semester_id: z.string().uuid("Invalid semester reference"),
   section_id: z.string().uuid("Invalid section reference"),
   batch_year: z.number().int().min(2000).max(2100),
 });
@@ -33,9 +32,11 @@ const facultySchema = z.object({
 });
 
 function getFriendlyErrorMessage(err: any): string {
-  if (err.code === "23505") return "A user with this unique identifier (email or roll/employee ID) already exists.";
-  if (err.code === "23503") return "Invalid department, semester, or section reference.";
-  return err.message || "A database error occurred during save.";
+  if (err.code === "23505") return "This record already exists. Please use a unique value (email, roll number, etc).";
+  if (err.code === "23503") return "This record is linked to other data and cannot be modified.";
+  if (err.code === "23514") return "The provided data is invalid (constraint violation).";
+  if (err.code === "42501") return "You do not have permission to perform this action.";
+  return err.message || "An unexpected database error occurred.";
 }
 
 export async function createStudent(values: any) {
@@ -85,7 +86,6 @@ export async function createStudent(values: any) {
         profile_id: userId,
         roll_number: validated.roll_number,
         department_id: validated.department_id,
-        semester_id: validated.semester_id,
         section_id: validated.section_id,
         batch_year: validated.batch_year,
       }]);
@@ -118,7 +118,6 @@ export async function getStudents() {
           roll_number,
           batch_year,
           department:departments(id, name, code),
-          semester:semesters(id, semester_number),
           section:sections(id, name)
         )
       `)
@@ -264,7 +263,7 @@ export async function createFaculty(values: any) {
     }
 
     revalidatePath("/admin/faculty");
-    return { success: true, employee_id };
+    return { success: true, employee_id, id: userId };
   } catch (error: any) {
     return { error: getFriendlyErrorMessage(error) };
   }

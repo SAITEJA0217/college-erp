@@ -1,1 +1,1 @@
-export const DEFAULT_PASSWORD = "MRUH@2020";
+export const DEFAULT_PASSWORD = "Academix@2026";

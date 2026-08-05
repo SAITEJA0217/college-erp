@@ -18,6 +18,7 @@ import {
 } from "@/features/admin/user-actions";
 import { toast } from "sonner";
 import { DEFAULT_PASSWORD } from "@/constants/auth";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 
 interface GetColumnsOptions {
   departments: Array<{ id: string; name: string }>;
@@ -28,7 +29,7 @@ export const getColumns = ({ departments, onEdit }: GetColumnsOptions): ColumnDe
   {
     accessorFn: (row) => row.employee_or_student_id,
     id: "employee_id",
-    header: "Employee ID",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Employee ID" />,
     cell: ({ row }) => (
       <span className="font-semibold font-mono text-xs">
         {row.original.employee_or_student_id || "—"}
@@ -37,36 +38,36 @@ export const getColumns = ({ departments, onEdit }: GetColumnsOptions): ColumnDe
   },
   {
     accessorKey: "full_name",
-    header: "Full Name",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Full Name" />,
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
     cell: ({ row }) => <span className="text-xs">{row.original.email}</span>,
   },
   {
     accessorKey: "phone",
-    header: "Phone",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
     cell: ({ row }) => <span>{row.original.phone || "—"}</span>,
   },
   {
     id: "department",
-    header: "Department",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Department" />,
     cell: ({ row }) => <span>{row.original.faculty?.department?.name || "—"}</span>,
   },
   {
     id: "designation",
-    header: "Designation",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Designation" />,
     cell: ({ row }) => <span>{row.original.faculty?.designation || "—"}</span>,
   },
   {
     id: "qualification",
-    header: "Qualification",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Qualification" />,
     cell: ({ row }) => <span>{row.original.faculty?.qualification || "—"}</span>,
   },
   {
     id: "experience_years",
-    header: "Experience",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Experience" />,
     cell: ({ row }) => {
       const exp = row.original.faculty?.experience_years;
       return <span>{exp != null ? `${exp} yrs` : "—"}</span>;
@@ -74,12 +75,12 @@ export const getColumns = ({ departments, onEdit }: GetColumnsOptions): ColumnDe
   },
   {
     id: "employment_type",
-    header: "Employment Type",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Employment Type" />,
     cell: ({ row }) => <span>{row.original.faculty?.employment_type || "—"}</span>,
   },
   {
     id: "password_status",
-    header: "Password Status",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Password Status" />,
     cell: ({ row }) => (
       <Badge variant={row.original.must_change_password ? "destructive" : "secondary"}>
         {row.original.must_change_password ? "Default Password" : "Updated"}
@@ -88,7 +89,7 @@ export const getColumns = ({ departments, onEdit }: GetColumnsOptions): ColumnDe
   },
   {
     accessorKey: "is_active",
-    header: "Status",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => (
       <Badge variant={row.original.is_active ? "default" : "secondary"}>
         {row.original.is_active ? "Active" : "Inactive"}

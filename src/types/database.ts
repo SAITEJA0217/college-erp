@@ -57,6 +57,17 @@ export interface Program {
   created_at: string;
 }
 
+export interface Semester {
+  id: string;
+  program_id: string;
+  academic_year_id: string;
+  semester_number: number;
+  start_date: string;
+  end_date: string;
+  is_archived: boolean;
+  created_at: string;
+}
+
 export interface AcademicYear {
   id: string;
   name: string;
@@ -67,20 +78,10 @@ export interface AcademicYear {
   created_at: string;
 }
 
-export interface Semester {
-  id: string;
-  academic_year_id: string;
-  program_id: string;
-  semester_number: number;
-  start_date: string | null;
-  end_date: string | null;
-  is_archived: boolean;
-  created_at: string;
-}
-
 export interface Section {
   id: string;
-  semester_id: string;
+  program_id: string;
+  academic_year_id: string;
   name: string;
   is_archived: boolean;
   created_at: string;
@@ -100,7 +101,6 @@ export interface Student {
   profile_id: string;
   roll_number: string;
   department_id: string | null;
-  semester_id: string | null;
   section_id: string | null;
   batch_year: number;
   current_cgpa: number;
@@ -124,7 +124,6 @@ export interface FacultyClassAssignment {
   id: string;
   faculty_profile_id: string;
   department_id: string;
-  semester_id: string;
   section_id: string;
   subject_id: string;
   academic_year: string;

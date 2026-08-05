@@ -38,8 +38,8 @@ export default function AuthLayout({
           </p>
         </div>
 
-        <div className="relative z-10 text-xs text-gray-400">
-          <span>© 2026 Malla Reddy University. Developed for MRUH ERP.</span>
+        <div className="absolute bottom-8 right-8 z-20 text-sm text-white/70">
+          <span>© 2026 Academix. Smart Campus Management Platform.</span>
         </div>
       </div>
 

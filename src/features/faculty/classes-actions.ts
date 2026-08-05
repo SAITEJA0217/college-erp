@@ -63,14 +63,8 @@ export async function getAssignedClasses(): Promise<AssignedClass[]> {
         ),
         section:sections(
           id,
-          name
-        ),
-        semester:semesters(
-          id,
-          semester_number,
-          program:programs(
-            name
-          )
+          name,
+          program:programs(name)
         ),
         department:departments(
           name
@@ -107,9 +101,8 @@ export async function getAssignedClasses(): Promise<AssignedClass[]> {
     const classes: AssignedClass[] = data.map((item: any) => {
       const subject = item.subject;
       const section = item.section;
-      const semester = item.semester;
       const department = item.department;
-      const program = semester?.program;
+      const program = section?.program;
 
       // Time diff in hours if available
       let weeklyHours = subject?.credits || 0;
@@ -127,8 +120,8 @@ export async function getAssignedClasses(): Promise<AssignedClass[]> {
         credits: subject?.credits || 0,
         section_id: section?.id || "",
         section_name: section?.name || "",
-        semester_id: semester?.id || "",
-        semester_number: semester?.semester_number || 0,
+        semester_id: "",
+        semester_number: 0,
         academic_year_name: item.academic_year || "",
         program_name: program?.name || "",
         department_name: department?.name || "",
@@ -141,5 +134,78 @@ export async function getAssignedClasses(): Promise<AssignedClass[]> {
     return classes;
   } catch (err) {
     return [];
+  }
+}
+
+export async function getFacultyDashboardData() {
+  try {
+    const profile = await assertRole(["faculty"]);
+    const supabase = await createClient();
+
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }); // e.g., 'Monday'
+
+    // 1. Fetch assigned classes
+    const { data: assignments, error } = await supabase
+      .from("faculty_class_assignments")
+      .select(`
+        id, room_number, day_of_week, start_time, end_time,
+        subject:subjects(name, code),
+        section:sections(id, name)
+      `)
+      .eq("faculty_profile_id", profile.id)
+      .eq("is_archived", false);
+
+    if (error) throw error;
+
+    // 2. Fetch active assignments (tasks created by this faculty that are not due yet, or just count them)
+    const { count: activeAssignments } = await (supabase as any)
+      .from("assignments")
+      .select("*", { count: "exact", head: true })
+      .eq("faculty_profile_id", profile.id);
+
+    // 3. Process today's classes
+    const todayClasses = assignments
+      .filter((a: any) => a.day_of_week === today)
+      .sort((a: any, b: any) => a.start_time.localeCompare(b.start_time))
+      .map((a: any) => ({
+        time: `${a.start_time.substring(0, 5)} - ${a.end_time.substring(0, 5)}`,
+        subject: a.subject?.name,
+        section: a.section?.name,
+        room: a.room_number,
+        attendanceMarked: false // Mocked for now, need check in attendance_records
+      }));
+
+    // 4. Calculate total students (unique students in assigned sections)
+    let totalStudents = 0;
+    const sectionIds = [...new Set(assignments.map((a: any) => a.section?.id).filter(Boolean))];
+    if (sectionIds.length > 0) {
+       const { count } = await (supabase as any)
+         .from("students")
+         .select("*", { count: "exact", head: true })
+         .in("section_id", sectionIds as string[]);
+       totalStudents = count || 0;
+    }
+
+    // 5. Unique subjects
+    const uniqueSubjects = new Set(assignments.map((a: any) => a.subject?.code)).size;
+
+    return {
+      overview: {
+        assignedSubjects: uniqueSubjects,
+        totalStudents,
+        activeAssignments: activeAssignments || 0,
+      },
+      todayClasses,
+      pendingTasks: [
+        { type: "general", text: "Check your upcoming classes and mark attendance." }
+      ]
+    };
+  } catch (err) {
+    console.error("Dashboard data error", err);
+    return {
+      overview: { assignedSubjects: 0, totalStudents: 0, activeAssignments: 0 },
+      todayClasses: [],
+      pendingTasks: []
+    };
   }
 }

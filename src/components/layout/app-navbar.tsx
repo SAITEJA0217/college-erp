@@ -4,6 +4,8 @@ import Link from "next/link";
 import { LogOut, Menu, UserRound } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { GlobalSearch } from "@/components/global-search";
+import { AppBreadcrumbs } from "./app-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -124,15 +126,13 @@ export function AppNavbar({
           </SheetContent>
         </Sheet>
 
-        <div>
-          <p className="text-sm font-bold text-[#1E2A78] tracking-wide" suppressHydrationWarning>Malla Reddy University {ROLE_LABELS[role]} Portal</p>
-          <p className="hidden text-xs font-medium text-gray-500 sm:block" suppressHydrationWarning>
-            Welcome back, {userName}
-          </p>
+        <div className="hidden md:flex items-center ml-2 border-l pl-4 border-border/60">
+          <AppBreadcrumbs role={role} />
         </div>
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
+        <GlobalSearch />
         <NotificationBell userId={userId} />
         <ThemeToggle />
         <DropdownMenu>

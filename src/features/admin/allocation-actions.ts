@@ -8,7 +8,7 @@ import { z } from "zod";
 const allocationSchema = z.object({
   faculty_profile_id: z.string().uuid("Invalid faculty reference"),
   department_id: z.string().uuid("Invalid department reference"),
-  semester_id: z.string().uuid("Invalid semester reference"),
+
   section_id: z.string().uuid("Invalid section reference"),
   subject_id: z.string().uuid("Invalid subject reference"),
   academic_year: z.string().min(1, "Academic year is required"),
@@ -39,7 +39,6 @@ export async function getFacultyAssignments() {
           employee_or_student_id
         ),
         department:departments(id, name, code),
-        semester:semesters(id, semester_number),
         section:sections(id, name),
         subject:subjects(id, name, code)
       `)
@@ -80,7 +79,7 @@ export async function createFacultyAssignment(values: any) {
       .from("faculty_class_assignments")
       .select("id")
       .eq("faculty_profile_id", validated.faculty_profile_id)
-      .eq("semester_id", validated.semester_id)
+
       .eq("section_id", validated.section_id)
       .eq("subject_id", validated.subject_id)
       .limit(1)) as { data: any[] | null };
@@ -93,7 +92,7 @@ export async function createFacultyAssignment(values: any) {
     if (validated.day_of_week && validated.start_time && validated.end_time) {
       const { data: conflicts } = (await adminClient
         .from("faculty_class_assignments")
-        .select("id, faculty_profile_id, room_number, section_id")
+        .select("id, faculty_profile_id, room_number, section_id, start_time, end_time, faculty:profiles(full_name), section:sections(name)")
         .eq("day_of_week", validated.day_of_week)
         .eq("academic_year", validated.academic_year)
         .neq("status", "Completed")
@@ -103,14 +102,19 @@ export async function createFacultyAssignment(values: any) {
 
       if (conflicts && conflicts.length > 0) {
         for (const conflict of conflicts) {
+          const formattedTime = `${conflict.start_time?.slice(0,5)}–${conflict.end_time?.slice(0,5)}`;
+          const day = validated.day_of_week;
+          
           if (conflict.faculty_profile_id === validated.faculty_profile_id) {
-            return { error: "Timetable conflict: The faculty member is already scheduled during this time." };
+            const facName = conflict.faculty?.full_name || "This faculty";
+            return { error: `Faculty Conflict: ${facName} already has a class on ${day} (${formattedTime}).` };
           }
           if (conflict.section_id === validated.section_id) {
-            return { error: "Timetable conflict: The section already has a class scheduled during this time." };
+            const secName = conflict.section?.name || "This section";
+            return { error: `Section Conflict: Section ${secName} already has a class on ${day} (${formattedTime}).` };
           }
           if (validated.room_number && conflict.room_number === validated.room_number) {
-            return { error: `Timetable conflict: Room ${validated.room_number} is already occupied during this time.` };
+            return { error: `Room Conflict: Room ${validated.room_number} is already occupied on ${day} (${formattedTime}).` };
           }
         }
       }
@@ -140,7 +144,7 @@ export async function updateFacultyAssignment(id: string, values: any) {
     if (validated.day_of_week && validated.start_time && validated.end_time && validated.academic_year) {
       const { data: conflicts } = (await adminClient
         .from("faculty_class_assignments")
-        .select("id, faculty_profile_id, room_number, section_id")
+        .select("id, faculty_profile_id, room_number, section_id, start_time, end_time, faculty:profiles(full_name), section:sections(name)")
         .eq("day_of_week", validated.day_of_week)
         .eq("academic_year", validated.academic_year)
         .neq("status", "Completed")
@@ -151,14 +155,19 @@ export async function updateFacultyAssignment(id: string, values: any) {
 
       if (conflicts && conflicts.length > 0) {
         for (const conflict of conflicts) {
+          const formattedTime = `${conflict.start_time?.slice(0,5)}–${conflict.end_time?.slice(0,5)}`;
+          const day = validated.day_of_week;
+          
           if (validated.faculty_profile_id && conflict.faculty_profile_id === validated.faculty_profile_id) {
-            return { error: "Timetable conflict: The faculty member is already scheduled during this time." };
+            const facName = conflict.faculty?.full_name || "This faculty";
+            return { error: `Faculty Conflict: ${facName} already has a class on ${day} (${formattedTime}).` };
           }
           if (validated.section_id && conflict.section_id === validated.section_id) {
-            return { error: "Timetable conflict: The section already has a class scheduled during this time." };
+            const secName = conflict.section?.name || "This section";
+            return { error: `Section Conflict: Section ${secName} already has a class on ${day} (${formattedTime}).` };
           }
           if (validated.room_number && conflict.room_number === validated.room_number) {
-            return { error: `Timetable conflict: Room ${validated.room_number} is already occupied during this time.` };
+            return { error: `Room Conflict: Room ${validated.room_number} is already occupied on ${day} (${formattedTime}).` };
           }
         }
       }

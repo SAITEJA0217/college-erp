@@ -51,7 +51,7 @@ export function CollegeForm({ initialData, open, onOpenChange }: { initialData?:
             render={({ field }) => (
               <FormItem>
                 <FormLabel>CODE</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ''} type="text" autoFocus /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

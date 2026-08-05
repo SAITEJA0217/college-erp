@@ -1,7 +1,9 @@
 import { getUserProfile } from "@/features/auth/user";
 import { redirect } from "next/navigation";
+import { getStudentDashboardData } from "@/features/student/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Clock, BookOpen, Calendar, GraduationCap, ClipboardList, Bell } from "lucide-react";
 import Link from "next/link";
 
@@ -12,17 +14,12 @@ export default async function StudentDashboard() {
     redirect("/login");
   }
 
-  // Mock data for MVP
-  const attendance = 85;
-  const todayClasses = [
-    { time: "09:00 AM", subject: "Data Structures", room: "CS-101" },
-    { time: "11:30 AM", subject: "Computer Networks", room: "CS-102" },
-  ];
-  const pendingAssignments = [
-    { title: "Binary Trees Assignment", due: "Tomorrow" },
-    { title: "Network Protocols Essay", due: "In 3 Days" },
-  ];
-  const upcomingQuiz = { subject: "Data Structures", topic: "Graphs", date: "Next Monday" };
+  const { todayClasses, attendance, pendingAssignments, upcomingQuiz } = await getStudentDashboardData() as {
+    todayClasses: any[];
+    attendance: number;
+    pendingAssignments: any[];
+    upcomingQuiz: any;
+  };
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 pb-24">
@@ -108,27 +105,41 @@ export default async function StudentDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {pendingAssignments.map((ass, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border p-3">
-                <div className="font-medium text-sm">{ass.title}</div>
-                <Badge variant="secondary" className="text-xs">{ass.due}</Badge>
+            {pendingAssignments.map((task, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                <div>
+                  <div className="font-semibold text-sm">{task.title}</div>
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> Due: {task.due}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/student/assignments">View</Link>
+                </Button>
               </div>
             ))}
+            {pendingAssignments.length === 0 && (
+              <div className="text-sm text-muted-foreground">No pending assignments.</div>
+            )}
           </CardContent>
         </Card>
 
         {/* Quiz & Notifications Stack */}
         <div className="col-span-1 flex flex-col gap-4">
-          <Card className="flex-1 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
+          <Card className="col-span-1">
             <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Calendar className="h-5 w-5 text-indigo-500" /> Upcoming Quiz
-              </CardTitle>
+              <CardTitle className="text-lg">Upcoming Quiz</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="font-semibold">{upcomingQuiz.subject}</div>
-              <div className="text-sm text-muted-foreground mb-2">Topic: {upcomingQuiz.topic}</div>
-              <Badge className="bg-indigo-500 hover:bg-indigo-600">{upcomingQuiz.date}</Badge>
+              {upcomingQuiz ? (
+                <>
+                  <div className="font-semibold">{upcomingQuiz.subject}</div>
+                  <div className="text-sm text-muted-foreground mb-2">Topic: {upcomingQuiz.topic}</div>
+                  <Badge className="bg-indigo-500 hover:bg-indigo-600">{upcomingQuiz.date}</Badge>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">No upcoming quizzes.</div>
+              )}
             </CardContent>
           </Card>
           

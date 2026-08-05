@@ -16,7 +16,6 @@ const schema = z.object({
   email: z.string().email("Invalid email address"),
   roll_number: z.string().min(1, "Roll Number is required"),
   department_id: z.string().min(1, "Department is required"),
-  semester_id: z.string().min(1, "Semester is required"),
   section_id: z.string().min(1, "Section is required"),
   batch_year: z.coerce.number().min(2000, "Invalid year"),
 });
@@ -27,17 +26,16 @@ interface StudentFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   departments: Array<{ id: string; name: string }>;
-  semesters: Array<{ id: string; semester_number: number }>;
   sections: Array<{ id: string; name: string }>;
 }
 
-export function StudentForm({ open, onOpenChange, departments, semesters, sections }: StudentFormProps) {
+export function StudentForm({ open, onOpenChange, departments, sections }: StudentFormProps) {
   const router = useRouter();
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema) as unknown as Resolver<FormData>,
     defaultValues: {
-      full_name: "", email: "", roll_number: "", department_id: "", semester_id: "", section_id: "", batch_year: new Date().getFullYear(),
+      full_name: "", email: "", roll_number: "", department_id: "", section_id: "", batch_year: new Date().getFullYear(),
     },
   });
 
@@ -73,28 +71,19 @@ export function StudentForm({ open, onOpenChange, departments, semesters, sectio
               <FormItem><FormLabel>Department</FormLabel>
                 <FormControl>
                   <select {...field} className="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                    <option value="">Select Department</option>
-                    {departments?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    <option value="" className="bg-background">Select Department</option>
+                    {departments?.map((d) => <option key={d.id} value={d.id} className="bg-background">{d.name}</option>)}
                   </select>
                 </FormControl>
               <FormMessage /></FormItem>
             )} />
-            <FormField control={form.control} name="semester_id" render={({ field }) => (
-              <FormItem><FormLabel>Semester</FormLabel>
-                <FormControl>
-                  <select {...field} className="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                    <option value="">Select Semester</option>
-                    {semesters?.map((s: any) => <option key={s.id} value={s.id}>Semester {s.semester_number}</option>)}
-                  </select>
-                </FormControl>
-              <FormMessage /></FormItem>
-            )} />
+
             <FormField control={form.control} name="section_id" render={({ field }) => (
               <FormItem><FormLabel>Section</FormLabel>
                 <FormControl>
                   <select {...field} className="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
-                    <option value="">Select Section</option>
-                    {sections?.map((s: any) => <option key={s.id} value={s.id}>Section {s.name}</option>)}
+                    <option value="" className="bg-background">Select Section</option>
+                    {sections?.map((s: any) => <option key={s.id} value={s.id} className="bg-background">Section {s.name}</option>)}
                   </select>
                 </FormControl>
               <FormMessage /></FormItem>

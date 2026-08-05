@@ -19,15 +19,12 @@ export default async function AdminTimetablePage() {
     .select(`
       id,
       name,
-      semester:semesters (
+      academic_year_id,
+      program:programs (
         id,
-        semester_number,
-        program:programs (
-          id,
-          name,
-          department:departments (
-            name
-          )
+        name,
+        department:departments (
+          name
         )
       )
     `)
@@ -37,11 +34,10 @@ export default async function AdminTimetablePage() {
   const formattedSections = (sections || []).map((s: any) => ({
     id: s.id,
     name: s.name,
-    semester_id: s.semester?.id,
-    semester_number: s.semester?.semester_number,
-    program_name: s.semester?.program?.name,
-    department_name: s.semester?.program?.department?.name,
-    label: `${s.semester?.program?.department?.name} > ${s.semester?.program?.name} > Sem ${s.semester?.semester_number} > Section ${s.name}`,
+    academic_year_id: s.academic_year_id,
+    program_name: s.program?.name,
+    department_name: s.program?.department?.name,
+    label: `${s.program?.department?.name} > ${s.program?.name} > Section ${s.name}`,
   }));
 
   return (

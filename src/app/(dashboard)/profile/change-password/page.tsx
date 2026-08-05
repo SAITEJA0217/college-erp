@@ -129,7 +129,7 @@ export default function ChangePasswordPage() {
                         <Input
                           type={showNew ? "text" : "password"}
                           className="pl-9 pr-9"
-                          placeholder="MRUH@2026"
+                          placeholder="Academix@2026"
                           {...field}
                         />
                         <button
@@ -157,7 +157,7 @@ export default function ChangePasswordPage() {
                         <Input
                           type={showNew ? "text" : "password"}
                           className="pl-9 pr-9"
-                          placeholder="MRUH@2026"
+                          placeholder="Academix@2026"
                           {...field}
                         />
                       </div>

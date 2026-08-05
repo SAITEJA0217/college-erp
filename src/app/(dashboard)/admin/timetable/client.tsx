@@ -11,7 +11,7 @@ import { Loader2, Trash2, Edit, GraduationCap, MapPin, User, Clock } from "lucid
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
-type Section = { id: string; name: string; label: string; semester_id: string; program_name?: string; department_name?: string; semester_number?: number };
+type Section = { id: string; name: string; label: string; academic_year_id?: string; program_name?: string; department_name?: string; };
 
 export function AdminTimetableClient({
   sections,
@@ -53,9 +53,8 @@ export function AdminTimetableClient({
   };
 
   const activeSection = sections.find(s => s.id === selectedSection);
-  
   const academicTitle = activeSection 
-    ? `${activeSection.program_name || "Program"} | Semester ${activeSection.semester_number} • Section ${activeSection.name}`
+    ? `${activeSection.program_name || "Program"} • Section ${activeSection.name}`
     : "";
 
   return (
@@ -103,11 +102,8 @@ export function AdminTimetableClient({
                  <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between">
                    <div>
                      <CardTitle className="text-lg">Manage Classes</CardTitle>
-                     <CardDescription>View, edit, or remove scheduled classes for this section.</CardDescription>
+                     <CardDescription>View or remove scheduled classes for this section. (Classes are auto-generated from Setup Wizard)</CardDescription>
                    </div>
-                   <Button asChild variant="outline" size="sm">
-                     <Link href="/admin/faculty-class-allocations">Add New Class</Link>
-                   </Button>
                  </CardHeader>
                  <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -151,13 +147,10 @@ export function AdminTimetableClient({
                                   </div>
                                 </td>
                                 <td className="px-4 py-3">{activeSection?.department_name}</td>
-                                <td className="px-4 py-3">Sem {activeSection?.semester_number}</td>
+                                <td className="px-4 py-3">{activeSection?.academic_year_id}</td>
                                 <td className="px-4 py-3">{ev.section_name || activeSection?.name}</td>
                                 <td className="px-4 py-3 text-right">
                                   <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild>
-                                      <Link href={`/admin/faculty-class-allocations`} title="Edit Allocation"><Edit className="h-4 w-4"/></Link>
-                                    </Button>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(ev.id)} title="Delete Class">
                                       <Trash2 className="h-4 w-4" />
                                     </Button>

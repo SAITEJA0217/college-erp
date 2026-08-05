@@ -55,7 +55,7 @@ export function ProgramForm({ initialData, open, onOpenChange, departments, scho
             control={form.control}
             name="school_id"
             render={({ field }) => (
-              <FormItem><FormLabel>School</FormLabel><FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3" onChange={(event) => { field.onChange(event); form.setValue("department_id", ""); }}><option value="">Select a school</option>{schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></FormControl><FormMessage /></FormItem>
+              <FormItem><FormLabel>School</FormLabel><FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3" onChange={(event) => { field.onChange(event); form.setValue("department_id", ""); }}><option value="" className="bg-background">Select a school</option>{schools.map((school) => <option key={school.id} value={school.id} className="bg-background">{school.name}</option>)}</select></FormControl><FormMessage /></FormItem>
             )}
           />
           <FormField
@@ -64,7 +64,7 @@ export function ProgramForm({ initialData, open, onOpenChange, departments, scho
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Department</FormLabel>
-                <FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3" disabled={!schoolId}><option value="">Select a department</option>{availableDepartments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></FormControl>
+                <FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3" disabled={!schoolId}><option value="" className="bg-background">Select a department</option>{availableDepartments.map((department) => <option key={department.id} value={department.id} className="bg-background">{department.name}</option>)}</select></FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -76,7 +76,7 @@ export function ProgramForm({ initialData, open, onOpenChange, departments, scho
             render={({ field }) => (
               <FormItem>
                 <FormLabel>CODE</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ''} type="text" autoFocus /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

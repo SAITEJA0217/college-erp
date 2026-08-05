@@ -7,7 +7,7 @@ import { StudentForm } from "./form";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-export function StudentsClient({ data, departments, semesters, sections }: any) {
+export function StudentsClient({ data, departments, sections }: any) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   
   const columns = getColumns();
@@ -36,7 +36,6 @@ export function StudentsClient({ data, departments, semesters, sections }: any) 
         open={isFormOpen} 
         onOpenChange={setIsFormOpen} 
         departments={departments}
-        semesters={semesters}
         sections={sections}
       />
     </>

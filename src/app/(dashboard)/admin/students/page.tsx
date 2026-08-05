@@ -1,11 +1,10 @@
 import { getStudents } from "@/features/admin/user-actions";
-import { getDepartments, getSemesters, getSections } from "@/features/admin/academic-actions";
+import { getDepartments, getSections } from "@/features/admin/academic-actions";
 import { StudentsClient } from "./client";
 
 export default async function StudentsPage() {
   const students = await getStudents();
   const departments = await getDepartments();
-  const semesters = await getSemesters();
   const sections = await getSections();
 
   return (
@@ -13,7 +12,6 @@ export default async function StudentsPage() {
       <StudentsClient 
         data={students} 
         departments={departments}
-        semesters={semesters}
         sections={sections}
       />
     </div>

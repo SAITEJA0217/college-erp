@@ -53,7 +53,7 @@ export function SubjectForm({ initialData, open, onOpenChange }: { initialData?:
             render={({ field }) => (
               <FormItem>
                 <FormLabel>SECTION ID</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ''} type="text" autoFocus /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

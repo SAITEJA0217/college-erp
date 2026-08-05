@@ -52,7 +52,7 @@ export function AcademicYearForm({ initialData, open, onOpenChange }: { initialD
             render={({ field }) => (
               <FormItem>
                 <FormLabel>NAME</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ''} type="text" autoFocus /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

@@ -133,11 +133,11 @@ export default function LoginPage() {
 
         <div className="mt-5 pt-4 border-t border-white/5 text-center space-y-2">
           <p className="text-[10px] text-gray-400 leading-normal">
-            Need help accessing your account? Contact the University Administrator.
+            Need help accessing your account? Contact the System Administrator.
           </p>
           <div className="flex justify-between items-center text-[9px] text-gray-500 px-1 pt-1 font-semibold">
-            <span>MRUH ERP v1.0</span>
-            <span>© 2026 Malla Reddy University</span>
+            <span>Academix v1.0</span>
+            <span>© 2026 Academix</span>
           </div>
         </div>
       </CardContent>

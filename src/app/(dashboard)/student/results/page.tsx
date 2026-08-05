@@ -43,7 +43,7 @@ export default async function StudentResultsPage() {
       {transcript && (
         <div className="space-y-6">
           {/* Transcript Summary */}
-          <div className="grid gap-4 md:grid-cols-3 print:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 print:grid-cols-2">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium">Cumulative GPA (CGPA)</CardTitle>
@@ -66,16 +66,7 @@ export default async function StudentResultsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">Total Semesters Passed</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{transcript.semesters?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Active academic semesters evaluated</p>
-              </CardContent>
-            </Card>
+
           </div>
 
           {/* Semesters Grade Tables */}
@@ -83,7 +74,7 @@ export default async function StudentResultsPage() {
             <Card key={sem.semesterNumber} className="print:border-none print:shadow-none">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div>
-                  <CardTitle className="text-xl">Semester {sem.semesterNumber}</CardTitle>
+                  <CardTitle className="text-xl">Academic Transcript</CardTitle>
                   <CardDescription>Academic Period: {sem.academicYear}</CardDescription>
                 </div>
                 <Badge variant="outline" className="text-sm font-semibold">

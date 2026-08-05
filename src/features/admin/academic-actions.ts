@@ -30,22 +30,16 @@ const academicYearSchema = z.object({
   end_date: z.string().min(1, "End date is required"),
 });
 
-const semesterSchema = z.object({
-  semester_number: z.number().int().min(1).max(10),
-  program_id: z.string().uuid("Invalid program reference"),
-  academic_year_id: z.string().uuid("Invalid academic year reference"),
-});
-
 const sectionSchema = z.object({
   name: z.string().trim().min(1, "Section name is required").max(10),
-  semester_id: z.string().uuid("Invalid semester reference"),
+  program_id: z.string().uuid("Invalid program reference"),
+  academic_year_id: z.string().uuid("Invalid academic year reference"),
 });
 
 const subjectSchema = z.object({
   name: z.string().trim().min(1, "Subject name is required").max(100),
   code: z.string().trim().toUpperCase().min(1, "Subject code is required").max(10),
   credits: z.number().int().min(1).max(6),
-  semester_id: z.string().uuid("Invalid semester reference").optional().nullable(),
   department_id: z.string().uuid("Invalid department reference").optional().nullable(),
 });
 
@@ -57,9 +51,11 @@ const facultyAssignmentSchema = z.object({
 
 // Helper for user-friendly database errors
 function getFriendlyErrorMessage(err: any): string {
-  if (err.code === "23505") return "Record already exists (unique constraint violation).";
-  if (err.code === "23503") return "Invalid foreign reference key.";
-  return err.message || "A database error occurred.";
+  if (err.code === "23505") return "This record already exists. Please use a unique value.";
+  if (err.code === "23503") return "This record is linked to other data and cannot be modified.";
+  if (err.code === "23514") return "The provided data is invalid (constraint violation).";
+  if (err.code === "42501") return "You do not have permission to perform this action.";
+  return err.message || "An unexpected database error occurred.";
 }
 
 // 1. Colleges Actions
@@ -338,65 +334,6 @@ export async function archiveAcademicYear(id: string) {
   }
 }
 
-// 5. Semesters Actions
-export async function getSemesters() {
-  try {
-    await assertRole(["admin"]);
-    const supabase = createAdminClient();
-    const { data } = await supabase.from("semesters").select("*").eq("is_archived", false);
-    return data || [];
-  } catch (err) {
-    return [];
-  }
-}
-
-export async function createSemester(values: any) {
-  try {
-    await assertRole(["admin"]);
-    const validated = semesterSchema.parse(values);
-    const supabase = createAdminClient();
-    const { data, error } = await supabase.from("semesters")
-      // @ts-expect-error type safety bypass
-      .insert([validated]).select().single();
-    if (error) throw error;
-    revalidatePath("/admin/semesters");
-    return { data };
-  } catch (error: any) {
-    return { error: getFriendlyErrorMessage(error) };
-  }
-}
-
-export async function updateSemester(id: string, values: any) {
-  try {
-    await assertRole(["admin"]);
-    const validated = semesterSchema.partial().parse(values);
-    const supabase = createAdminClient();
-    const { data, error } = await supabase.from("semesters")
-      // @ts-expect-error type safety bypass
-      .update(validated).eq("id", id).select().single();
-    if (error) throw error;
-    revalidatePath("/admin/semesters");
-    return { data };
-  } catch (error: any) {
-    return { error: getFriendlyErrorMessage(error) };
-  }
-}
-
-export async function archiveSemester(id: string) {
-  try {
-    await assertRole(["admin"]);
-    const supabase = createAdminClient();
-    const { error } = await supabase.from("semesters")
-      // @ts-expect-error type safety bypass
-      .update({ is_archived: true }).eq("id", id);
-    if (error) throw error;
-    revalidatePath("/admin/semesters");
-    return { success: true };
-  } catch (error: any) {
-    return { error: getFriendlyErrorMessage(error) };
-  }
-}
-
 // 6. Sections Actions
 export async function getSections() {
   try {
@@ -448,6 +385,21 @@ export async function archiveSection(id: string) {
     const { error } = await supabase.from("sections")
       // @ts-expect-error type safety bypass
       .update({ is_archived: true }).eq("id", id);
+    if (error) throw error;
+    revalidatePath("/admin/sections");
+    return { success: true };
+  } catch (error: any) {
+    return { error: getFriendlyErrorMessage(error) };
+  }
+}
+
+export async function deleteSection(id: string) {
+  try {
+    await assertRole(["admin"]);
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("sections")
+      .delete()
+      .eq("id", id);
     if (error) throw error;
     revalidatePath("/admin/sections");
     return { success: true };
@@ -515,6 +467,22 @@ export async function archiveSubject(id: string) {
   }
 }
 
+export async function deleteSubject(id: string) {
+  try {
+    await assertRole(["admin"]);
+    z.string().uuid().parse(id);
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("subjects")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+    revalidatePath("/admin/subjects");
+    return { success: true };
+  } catch (error: any) {
+    return { error: getFriendlyErrorMessage(error) };
+  }
+}
+
 // 8. Faculty Assignments Actions
 export async function getFacultyAssignments() {
   try {
@@ -571,5 +539,193 @@ export async function archiveFacultyAssignment(id: string) {
     return { success: true };
   } catch (error: any) {
     return { error: getFriendlyErrorMessage(error) };
+  }
+}
+
+import { createFaculty } from "@/features/admin/user-actions";
+import { createFacultyAssignment as createClassAssignment } from "@/features/admin/allocation-actions";
+
+export type SetupWizardPayload = {
+  school: { mode: "select" | "new"; id?: string; values?: any };
+  department: { mode: "select" | "new"; id?: string; values?: any };
+  program: { mode: "select" | "new"; id?: string; values?: any };
+  academic_year: { mode: "select" | "new"; id?: string; values?: any };
+  section: { mode: "select" | "new"; id?: string; values?: any };
+  subject: { mode: "select" | "new"; id?: string; values?: any };
+  faculty: { mode: "select" | "new"; id?: string; values?: any };
+  timetable: { day_of_week: string; start_time: string; end_time: string; room_number?: string };
+};
+
+export async function submitSetupWizard(payload: SetupWizardPayload) {
+  await assertRole(["admin"]);
+  const supabase = createAdminClient();
+  
+  const created = {
+    schools: [] as string[],
+    departments: [] as string[],
+    programs: [] as string[],
+    academic_years: [] as string[],
+    sections: [] as string[],
+    subjects: [] as string[],
+    profiles: [] as string[],
+    faculty_class_assignments: [] as string[],
+  };
+
+  const rollback = async () => {
+    for (const id of created.faculty_class_assignments) await supabase.from("faculty_class_assignments").delete().eq("id", id);
+    for (const id of created.subjects) await supabase.from("subjects").delete().eq("id", id);
+    for (const id of created.sections) await supabase.from("sections").delete().eq("id", id);
+    for (const id of created.academic_years) await supabase.from("academic_years").delete().eq("id", id);
+    for (const id of created.programs) await supabase.from("programs").delete().eq("id", id);
+    for (const id of created.departments) await supabase.from("departments").delete().eq("id", id);
+    for (const id of created.schools) await supabase.from("schools").delete().eq("id", id);
+    for (const id of created.profiles) await supabase.auth.admin.deleteUser(id);
+  };
+
+  try {
+    let schoolId = payload.school.id;
+    if (payload.school.mode === "new") {
+      const res = await createSchool(payload.school.values);
+      if (res.error || !(res as any).data) throw new Error("School Error: " + res.error);
+      schoolId = (res as any).data.id;
+      created.schools.push(schoolId as string);
+    }
+
+    let departmentId = payload.department.id;
+    if (payload.department.mode === "new") {
+      const res = await createDepartment({ ...payload.department.values, school_id: schoolId });
+      if (res.error || !(res as any).data) throw new Error("Department Error: " + res.error);
+      departmentId = (res as any).data.id;
+      created.departments.push(departmentId as string);
+    }
+
+    let programId = payload.program.id;
+    if (payload.program.mode === "new") {
+      const res = await createProgram({ ...payload.program.values, department_id: departmentId });
+      if (res.error || !(res as any).data) throw new Error("Program Error: " + res.error);
+      programId = (res as any).data.id;
+      created.programs.push(programId as string);
+    }
+
+    let academicYearId = payload.academic_year.id;
+    if (payload.academic_year.mode === "new") {
+      const res = await createAcademicYear(payload.academic_year.values);
+      if (res.error || !(res as any).data) throw new Error("Academic Year Error: " + res.error);
+      academicYearId = (res as any).data.id;
+      created.academic_years.push(academicYearId as string);
+    }
+
+    let sectionId = payload.section.id;
+    if (payload.section.mode === "new") {
+      const res = await createSection({ ...payload.section.values, program_id: programId, academic_year_id: academicYearId });
+      if (res.error || !(res as any).data) throw new Error("Section Error: " + res.error);
+      sectionId = (res as any).data.id;
+      created.sections.push(sectionId as string);
+    }
+
+    let subjectId = payload.subject.id;
+    if (payload.subject.mode === "new") {
+      const res = await createSubject({ ...payload.subject.values, department_id: departmentId });
+      if (res.error || !(res as any).data) throw new Error("Subject Error: " + res.error);
+      subjectId = (res as any).data.id;
+      created.subjects.push(subjectId as string);
+    }
+
+    let facultyProfileId = payload.faculty.id;
+    if (payload.faculty.mode === "new") {
+      const res = await createFaculty({ ...payload.faculty.values, department_id: departmentId });
+      if (res.error) throw new Error("Faculty Error: " + res.error);
+      facultyProfileId = res.id;
+      created.profiles.push(facultyProfileId as string);
+    }
+
+    if (facultyProfileId && subjectId && sectionId) {
+      const assignRes = await createClassAssignment({
+        faculty_profile_id: facultyProfileId,
+        department_id: departmentId,
+        section_id: sectionId,
+        subject_id: subjectId,
+        academic_year: academicYearId,
+        room_number: payload.timetable.room_number,
+        day_of_week: payload.timetable.day_of_week,
+        start_time: payload.timetable.start_time,
+        end_time: payload.timetable.end_time,
+        status: "Active"
+      });
+      if (assignRes.error) {
+        throw new Error(assignRes.error);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    await rollback();
+    return { error: err.message || "An unexpected error occurred during setup." };
+  }
+}
+
+export async function cloneAcademicSession(sourceYearId: string, newYearName: string) {
+  try {
+    const supabase = await createAdminClient();
+
+    // 1. Create the New Academic Year
+    const yearStr = newYearName;
+    const start_date = `${yearStr.substring(0,4)}-07-01`;
+    const end_date = `${yearStr.substring(5,9)}-06-30`;
+    
+    const yearRes = await createAcademicYear({ name: newYearName, start_date, end_date });
+    if (yearRes.error || !(yearRes as any).data) return { error: "Failed to create new academic year: " + yearRes.error };
+    
+    const newYearId = (yearRes as any).data.id;
+
+    // 2. Fetch all sections from the old year
+    const { data: oldSections, error: sectionsError } = await supabase
+      .from("sections")
+      .select("*")
+      .eq("academic_year_id", sourceYearId)
+      .eq("is_archived", false);
+
+    if (sectionsError) throw new Error("Failed to fetch old sections.");
+
+    // 3. For each old section, duplicate it to the new year, and duplicate its subjects
+    if (oldSections && oldSections.length > 0) {
+      for (const section of oldSections as any[]) {
+        // Create new section
+        const newSecRes = await createSection({
+          program_id: section.program_id,
+          academic_year_id: newYearId,
+          name: section.name
+        });
+        
+        if (newSecRes.error || !(newSecRes as any).data) {
+          throw new Error(`Failed to create section ${section.name}: ${newSecRes.error}`);
+        }
+        
+        const newSecId = (newSecRes as any).data.id;
+
+        // Fetch subjects for this old section
+        const { data: oldSubjects } = await supabase
+          .from("subjects")
+          .select("*")
+          .eq("section_id", section.id)
+          .eq("is_archived", false);
+
+        if (oldSubjects && oldSubjects.length > 0) {
+          for (const subject of oldSubjects as any[]) {
+            await createSubject({
+              section_id: newSecId,
+              code: subject.code,
+              name: subject.name,
+              credits: subject.credits
+            });
+          }
+        }
+      }
+    }
+
+    return { success: true, newYearId };
+
+  } catch (error: any) {
+    return { error: error.message };
   }
 }

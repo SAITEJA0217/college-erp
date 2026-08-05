@@ -1,5 +1,6 @@
 import { getUserProfile } from "@/features/auth/user";
 import { redirect } from "next/navigation";
+import { getFacultyDashboardData } from "@/features/faculty/classes-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,16 +14,7 @@ export default async function FacultyDashboard() {
     redirect("/login");
   }
 
-  // Mock data for MVP Overview
-  const todayClasses = [
-    { time: "09:00 AM", subject: "Data Structures", section: "CSE - 2A", room: "CS-101", attendanceMarked: true },
-    { time: "11:30 AM", subject: "Computer Networks", section: "CSE - 2B", room: "CS-102", attendanceMarked: false },
-  ];
-  
-  const pendingTasks = [
-    { type: "attendance", text: "Mark Attendance for Computer Networks (CSE-2B)" },
-    { type: "grading", text: "Grade 14 Submissions for Data Structures Assignment" },
-  ];
+  const { overview, todayClasses, pendingTasks } = await getFacultyDashboardData();
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 pb-24">
@@ -74,15 +66,15 @@ export default async function FacultyDashboard() {
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center mt-2">
               <div>
-                <div className="text-3xl font-bold text-primary">3</div>
+                <div className="text-3xl font-bold text-primary">{overview.assignedSubjects}</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-1">Assigned Subjects</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-primary">120</div>
+                <div className="text-3xl font-bold text-primary">{overview.totalStudents}</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-1">Total Students</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-primary">2</div>
+                <div className="text-3xl font-bold text-primary">{overview.activeAssignments}</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-1">Active Assignments</div>
               </div>
             </div>
@@ -99,27 +91,33 @@ export default async function FacultyDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {todayClasses.map((cls, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border p-4 bg-card hover:bg-muted/50 transition-colors">
-                <div className="flex items-start gap-4">
-                  <div className="font-bold text-primary w-20 shrink-0">{cls.time}</div>
-                  <div>
-                    <div className="font-semibold text-lg">{cls.subject}</div>
-                    <div className="text-sm text-muted-foreground flex gap-3 mt-1">
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {cls.section}</span>
-                      <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> Room: {cls.room}</span>
+            {todayClasses.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                No classes scheduled for today.
+              </div>
+            ) : (
+              todayClasses.map((cls, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border p-4 bg-card hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <div className="font-bold text-primary w-20 shrink-0">{cls.time}</div>
+                    <div>
+                      <div className="font-semibold text-lg">{cls.subject}</div>
+                      <div className="text-sm text-muted-foreground flex gap-3 mt-1">
+                        <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {cls.section}</span>
+                        <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> Room: {cls.room}</span>
+                      </div>
                     </div>
                   </div>
+                  <div>
+                    {cls.attendanceMarked ? (
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600">Attendance Marked</Badge>
+                    ) : (
+                      <Badge variant="destructive">Pending Attendance</Badge>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {cls.attendanceMarked ? (
-                    <Badge variant="default" className="bg-green-500 hover:bg-green-600">Attendance Marked</Badge>
-                  ) : (
-                    <Badge variant="destructive">Pending Attendance</Badge>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 

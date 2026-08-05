@@ -1,9 +1,9 @@
-# MRUH ERP - College Enterprise Resource Planning
+# Academix - Smart Campus Management Platform
 
 **Version:** 1.0 (Release Candidate)
 **Status:** Production Ready
 
-MRUH ERP is a comprehensive, production-grade College Enterprise Resource Planning system built on Next.js 15, React 19, Tailwind CSS, shadcn/ui, and Supabase.
+Academix is a comprehensive, production-grade College Enterprise Resource Planning system built on Next.js 15, React 19, Tailwind CSS, shadcn/ui, and Supabase.
 
 This software has been finalized for the Final Year Project Submission, University Pilot Testing, and Vercel Deployment.
 
@@ -11,7 +11,7 @@ This software has been finalized for the Final Year Project Submission, Universi
 
 ## Complete Project Documentation
 
-All detailed documentation for the MRUH ERP Version 1.0 release can be found in the `docs/` directory.
+All detailed documentation for the Academix Version 1.0 release can be found in the `docs/` directory.
 
 ### 🏛 Architecture & Database
 - [System Architecture](docs/SYSTEM_ARCHITECTURE.md) - Project structure, folder layout, modules, and role management.

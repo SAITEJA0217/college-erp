@@ -13,54 +13,50 @@ import { Badge } from "@/components/ui/badge";
 import { toggleUserStatus, deleteUserAccount, resetUserPassword } from "@/features/admin/user-actions";
 import { toast } from "sonner";
 import { DEFAULT_PASSWORD } from "@/constants/auth";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 
 export const getColumns = (): ColumnDef<any>[] => [
   {
     accessorKey: "full_name",
-    header: "Full Name",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Full Name" />,
   },
   {
     accessorFn: (row) => row.students?.roll_number,
     id: "roll_number",
-    header: "Roll Number",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Roll Number" />,
     cell: ({ row }) => <span className="font-semibold">{row.original.students?.roll_number}</span>
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
   },
   {
     accessorKey: "phone",
-    header: "Phone",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone" />,
     cell: ({ row }) => <span>{row.original.phone || "—"}</span>
   },
   {
     accessorFn: (row) => row.students?.department?.name,
     id: "department",
-    header: "Department",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Department" />,
     cell: ({ row }) => <span>{row.original.students?.department?.name || "—"}</span>
   },
-  {
-    accessorFn: (row) => row.students?.semester?.semester_number,
-    id: "semester",
-    header: "Semester",
-    cell: ({ row }) => <span>{row.original.students?.semester ? `Semester ${row.original.students.semester.semester_number}` : "—"}</span>
-  },
+
   {
     accessorFn: (row) => row.students?.section?.name,
     id: "section",
-    header: "Section",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Section" />,
     cell: ({ row }) => <span>{row.original.students?.section?.name || "—"}</span>
   },
   {
     accessorFn: (row) => row.students?.batch_year,
     id: "batch",
-    header: "Batch",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Batch" />,
     cell: ({ row }) => <span>{row.original.students?.batch_year || "—"}</span>
   },
   {
     id: "password_status",
-    header: "Password Status",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Password Status" />,
     cell: ({ row }) => (
       <Badge variant={row.original.must_change_password ? "destructive" : "secondary"}>
         {row.original.must_change_password ? "Default Password" : "Updated"}
@@ -69,7 +65,7 @@ export const getColumns = (): ColumnDef<any>[] => [
   },
   {
     accessorKey: "is_active",
-    header: "Status",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => (
       <Badge variant={row.original.is_active ? "default" : "secondary"}>
         {row.original.is_active ? "Active" : "Inactive"}

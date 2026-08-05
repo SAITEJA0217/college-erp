@@ -111,7 +111,7 @@ export function FacultyForm({ open, onOpenChange, departments }: FacultyFormProp
   return (
     <AppModal
       title="Add Faculty"
-      description="Employee ID is auto-assigned. Default password is Welcome@2024."
+      description={`Employee ID is auto-assigned. Default password is ${DEFAULT_PASSWORD}.`}
       open={open}
       onOpenChange={(val) => {
         onOpenChange(val);
@@ -142,7 +142,7 @@ export function FacultyForm({ open, onOpenChange, departments }: FacultyFormProp
                 <FormItem>
                   <FormLabel className="text-xs">Email</FormLabel>
                   <FormControl>
-                    <Input className="h-9" type="email" placeholder="faculty@mruh.edu.in" {...field} />
+                    <Input className="h-9" type="email" placeholder="faculty@academix.edu" {...field} />
                   </FormControl>
                   <FormMessage className="text-[10px]" />
                 </FormItem>

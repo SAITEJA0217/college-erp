@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "Malla Reddy University",
-  shortName: "MRUH ERP",
+  name: "Academix",
+  shortName: "Academix",
   description:
-    "Malla Reddy University ERP - Digital Campus Management System.",
+    "Smart Campus Management Platform - Simplifying Academic Excellence",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 } as const;

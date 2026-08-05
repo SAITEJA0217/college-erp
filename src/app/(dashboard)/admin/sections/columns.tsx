@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Section } from "@/types/database";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Archive } from "lucide-react";
+import { MoreHorizontal, Edit, Archive, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,16 +11,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 
 export const getColumns = (
   onEdit: (item: Section) => void,
   onArchive: (id: string) => void,
+  onDelete: (id: string) => void,
 ): ColumnDef<Section>[] => [
-  { accessorKey: "semester_id", header: "SEMESTER ID" },
-  { accessorKey: "name", header: "NAME" },
+  { 
+    accessorKey: "academic_year_id", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Academic Year ID" />
+  },
+  { 
+    accessorKey: "program_id", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Program ID" />
+  },
+  { 
+    accessorKey: "name", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />
+  },
   {
     accessorKey: "created_at",
-    header: "Created",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
     cell: ({ row }) => format(new Date(row.getValue("created_at")), "MMM d, yyyy"),
   },
   {
@@ -32,7 +44,10 @@ export const getColumns = (
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(row.original)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onArchive(row.original.id)}><Archive className="mr-2 h-4 w-4" /> Archive</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onArchive(row.original.id)}><Archive className="mr-2 h-4 w-4" /> Archive</DropdownMenuItem>
+          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(row.original.id)}>
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),

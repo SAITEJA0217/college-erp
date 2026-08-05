@@ -56,7 +56,7 @@ export function DepartmentForm({ initialData, open, onOpenChange, schools }: { i
             render={({ field }) => (
               <FormItem>
                 <FormLabel>School</FormLabel>
-                <FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3"><option value="">Select a school</option>{schools.map((school) => <option key={school.id} value={school.id}>{school.name} ({school.code})</option>)}</select></FormControl>
+                <FormControl><select {...field} className="h-10 w-full rounded-md border bg-background px-3"><option value="" className="bg-background">Select a school</option>{schools.map((school) => <option key={school.id} value={school.id} className="bg-background">{school.name} ({school.code})</option>)}</select></FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -67,7 +67,7 @@ export function DepartmentForm({ initialData, open, onOpenChange, schools }: { i
             render={({ field }) => (
               <FormItem>
                 <FormLabel>CODE</FormLabel>
-                <FormControl><Input {...field} value={field.value || ''} type="text" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ''} type="text" autoFocus /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

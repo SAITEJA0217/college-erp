@@ -5,14 +5,15 @@ import { getAdminAnalytics } from "@/features/analytics/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users, GraduationCap, Building2, TrendingUp, IndianRupee,
-  ClipboardList, Award
+  ClipboardList, Award, Bell
 } from "lucide-react";
 import {
   Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, Tooltip
+  PieChart, Pie, Cell, Legend, Tooltip
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 const COLORS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 
@@ -62,7 +63,7 @@ export function AdminDashboardClient() {
     );
   }
 
-  const { metrics, charts } = data;
+  const { metrics, charts, recentNotifications = [] } = data;
 
   const placementPct = metrics.totalStudents > 0
     ? Math.round(
@@ -163,49 +164,77 @@ export function AdminDashboardClient() {
         </Card>
       </div>
 
-      {/* Row 2: Revenue Trend (full width) */}
+      {/* Row 2: Quick Actions */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-emerald-500" />
-                Fee Revenue Forecast
-              </CardTitle>
-              <CardDescription>Projected revenue collection over the last 6 months (illustrative).</CardDescription>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">₹{(metrics.totalRevenue / 100000).toFixed(1)}L</p>
-              <p className="text-xs text-muted-foreground">6-month total</p>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-indigo-500" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription>Common administrative tasks.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={charts.revenueData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} className="text-xs" />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  className="text-xs"
-                  tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`}
-                />
-                <ChartTooltip
-                  content={<ChartTooltipContent formatter={(v: any) => [`₹${(v / 100000).toFixed(2)}L`, "Revenue"]} />}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#10b981"
-                  strokeWidth={2.5}
-                  dot={{ r: 5, fill: "#10b981" }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link href="/admin/students" className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-muted/50 transition-colors">
+              <div className="rounded-full bg-blue-100 p-3 mb-3">
+                <GraduationCap className="h-6 w-6 text-blue-600" />
+              </div>
+              <span className="text-sm font-medium">Manage Students</span>
+            </Link>
+            <Link href="/admin/faculty" className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-muted/50 transition-colors">
+              <div className="rounded-full bg-purple-100 p-3 mb-3">
+                <Users className="h-6 w-6 text-purple-600" />
+              </div>
+              <span className="text-sm font-medium">Manage Faculty</span>
+            </Link>
+            <Link href="/admin/timetable" className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-muted/50 transition-colors">
+              <div className="rounded-full bg-green-100 p-3 mb-3">
+                <Building2 className="h-6 w-6 text-green-600" />
+              </div>
+              <span className="text-sm font-medium">Timetable</span>
+            </Link>
+            <Link href="/admin/departments" className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-muted/50 transition-colors">
+              <div className="rounded-full bg-amber-100 p-3 mb-3">
+                <TrendingUp className="h-6 w-6 text-amber-600" />
+              </div>
+              <span className="text-sm font-medium">Departments</span>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Row 3: Recent Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-indigo-500" />
+            Recent System Events
+          </CardTitle>
+          <CardDescription>Latest alerts and notifications generated by the system.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentNotifications.length > 0 ? (
+            <div className="space-y-4">
+              {recentNotifications.map((note: any) => (
+                <div key={note.id} className="flex items-start gap-3 rounded-lg border p-3 bg-muted/30">
+                  <div className="rounded-full p-2 bg-indigo-500/10 text-indigo-600 mt-0.5">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold">{note.title}</h4>
+                    {note.body && <p className="text-sm text-muted-foreground mt-1">{note.body}</p>}
+                    <span className="text-xs text-muted-foreground mt-2 block">
+                      {new Date(note.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground border border-dashed rounded-lg">
+              No recent notifications found.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

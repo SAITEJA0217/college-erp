@@ -8,7 +8,7 @@ import type { Subject } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Plus, Archive } from "lucide-react";
 import { AppModal } from "@/components/overlays/app-modal";
-import { archiveSubject } from "@/features/admin/academic-actions";
+import { archiveSubject, deleteSubject } from "@/features/admin/academic-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +17,7 @@ export function SubjectsClient({ data }: { data: Subject[] }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingData, setEditingData] = useState<Subject | undefined>();
   const [itemToArchive, setItemToArchive] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const handleEdit = (item: Subject) => {
     setEditingData(item);
@@ -31,7 +32,15 @@ export function SubjectsClient({ data }: { data: Subject[] }) {
     setItemToArchive(null);
   };
 
-  const columns = getColumns(handleEdit, setItemToArchive);
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+    const result = await deleteSubject(itemToDelete);
+    if (result.error) toast.error(result.error);
+    else { toast.success("Deleted successfully."); router.refresh(); }
+    setItemToDelete(null);
+  };
+
+  const columns = getColumns(handleEdit, setItemToArchive, setItemToDelete);
 
   return (
     <>
@@ -58,6 +67,19 @@ export function SubjectsClient({ data }: { data: Subject[] }) {
           </>
         }
       ><p className="text-sm text-muted-foreground">You can restore archived records later if needed.</p></AppModal>
+
+      <AppModal
+        title="Delete Subject"
+        description="Are you sure you want to permanently delete this subject? This action cannot be undone."
+        open={!!itemToDelete}
+        onOpenChange={(val) => !val && setItemToDelete(null)}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setItemToDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
+          </>
+        }
+      ><p className="text-sm text-destructive">This will permanently delete the subject.</p></AppModal>
     </>
   );
 }

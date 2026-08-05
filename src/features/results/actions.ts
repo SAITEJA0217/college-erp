@@ -19,7 +19,6 @@ const studentResultInputSchema = z.object({
 
 const publishSubjectResultsSchema = z.object({
   subjectId: z.string().uuid("Invalid subject reference"),
-  semesterId: z.string().uuid("Invalid semester reference"),
   resultsList: z.array(studentResultInputSchema).min(1, "Results list cannot be empty"),
 });
 
@@ -61,7 +60,6 @@ export async function publishSubjectResults(params: any) {
       return {
         student_id: res.studentId,
         subject_id: validated.subjectId,
-        semester_id: validated.semesterId,
         marks_obtained: res.marksObtained,
         max_marks: res.maxMarks,
         grade,
@@ -175,11 +173,6 @@ export async function getStudentTranscript(studentProfileId: string) {
         grade_points,
         marks_obtained,
         max_marks,
-        semester:semesters (
-          id,
-          semester_number,
-          academic_year:academic_years ( name )
-        ),
         subject:subjects (
           id,
           name,
@@ -192,29 +185,22 @@ export async function getStudentTranscript(studentProfileId: string) {
 
     if (error) throw error;
 
-    // Group by semester
-    const semestersGrouped: Record<string, { semesterNumber: number; academicYear: string; courses: any[]; sgpa: number; totalCredits: number }> = {};
+    const transcriptGroup = {
+      semesterNumber: 1,
+      academicYear: "Overall",
+      courses: [] as any[],
+      sgpa: 0,
+      totalCredits: 0,
+    };
     
     let totalOverallCredits = 0;
     let totalOverallPoints = 0;
 
     (data || []).forEach((row: any) => {
-      const sem = row.semester;
       const sub = row.subject;
-      if (!sem || !sub) return;
+      if (!sub) return;
 
-      const semId = sem.id;
-      if (!semestersGrouped[semId]) {
-        semestersGrouped[semId] = {
-          semesterNumber: sem.semester_number,
-          academicYear: sem.academic_year?.name || "N/A",
-          courses: [],
-          sgpa: 0,
-          totalCredits: 0,
-        };
-      }
-
-      semestersGrouped[semId].courses.push({
+      transcriptGroup.courses.push({
         subjectName: sub.name,
         subjectCode: sub.code,
         credits: sub.credits,
@@ -224,23 +210,18 @@ export async function getStudentTranscript(studentProfileId: string) {
         points: row.grade_points,
       });
 
-      semestersGrouped[semId].totalCredits += sub.credits;
+      transcriptGroup.totalCredits += sub.credits;
       totalOverallCredits += sub.credits;
       totalOverallPoints += row.grade_points * sub.credits;
     });
 
-    // Compute SGPA for each semester
-    const semestersList = Object.values(semestersGrouped).map((sem) => {
-      let creditPoints = 0;
-      sem.courses.forEach((c) => {
-        creditPoints += c.points * c.credits;
-      });
-      const sgpa = sem.totalCredits === 0 ? 0 : Number((creditPoints / sem.totalCredits).toFixed(2));
-      return {
-        ...sem,
-        sgpa,
-      };
-    }).sort((a, b) => a.semesterNumber - b.semesterNumber);
+    let creditPoints = 0;
+    transcriptGroup.courses.forEach((c) => {
+      creditPoints += c.points * c.credits;
+    });
+    transcriptGroup.sgpa = transcriptGroup.totalCredits === 0 ? 0 : Number((creditPoints / transcriptGroup.totalCredits).toFixed(2));
+
+    const semestersList = [transcriptGroup];
 
     const overallCgpa = totalOverallCredits === 0 ? 0 : Number((totalOverallPoints / totalOverallCredits).toFixed(2));
 

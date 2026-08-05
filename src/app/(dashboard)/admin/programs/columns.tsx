@@ -11,19 +11,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 
 export const getColumns = (
   onEdit: (item: Program) => void,
   onArchive: (id: string) => void,
 ): ColumnDef<Program>[] => [
-  { accessorKey: "school_name", header: "SCHOOL" },
-  { accessorKey: "department_name", header: "DEPARTMENT" },
-  { accessorKey: "code", header: "CODE" },
-  { accessorKey: "name", header: "NAME" },
-  { accessorKey: "duration", header: "DURATION (YEARS)" },
+  { 
+    accessorKey: "school_name", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="School" />
+  },
+  { 
+    accessorKey: "department_name", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Department" />
+  },
+  { 
+    accessorKey: "code", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />
+  },
+  { 
+    accessorKey: "name", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />
+  },
+  { 
+    accessorKey: "duration", 
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Duration (Years)" />
+  },
   {
     accessorKey: "created_at",
-    header: "Created",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
     cell: ({ row }) => format(new Date(row.getValue("created_at")), "MMM d, yyyy"),
   },
   {
